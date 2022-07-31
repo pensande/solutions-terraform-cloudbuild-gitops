@@ -236,7 +236,8 @@ def admin_access(request):
                     "response_url": response_json['response_url']
                 }
                 function_response = call_function(http_endpoint, response_payload)
-                if function_response.statuscode == 200:
+                function_response_json = function_response.json()
+                if function_response_json['result'] == "Success":
                     response_subject = "This access request was approved and executed!"
                 else:
                     response_subject = "This access request was approved but execution failed!"
@@ -247,6 +248,11 @@ def admin_access(request):
             
             # post message back to the requestor
             slack_message[0]['text']['text'] = f"_Hey {requestor_name}!_ :wave: _{response_subject}_"
+            if decision == "Approved":
+                slack_message[1]['fields'].append({
+                    "type": "mrkdwn",
+                    "text": f"*Info:*\n{function_response_json['info']}"
+                })
             if post_slack_message(requestor_id, response_subject, slack_message):
                 response_footer = "The access requestor has been informed about this action."
             else:
@@ -282,6 +288,12 @@ def admin_access(request):
                     }
                 ]
             }
+            if decision == "Approved":
+                slack_message['attachments'][0]['fields'].append({
+                    "title": "Info",
+                    "value": function_response_json['info'],
+                    "short": True
+                })
             return post_slack_response(response_json['response_url'], slack_message)
         else:
             print("Not a valid payload!")
