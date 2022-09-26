@@ -17,3 +17,7 @@ output "external_ip" {
   value = "${module.http_lb.external_ip}"
 }
 */
+
+output "function_trigger_url" {
+  value = module.admin-access-cloud-function.function_trigger_url
+}
