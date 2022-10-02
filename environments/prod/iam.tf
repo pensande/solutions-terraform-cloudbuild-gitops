@@ -67,3 +67,36 @@ resource "google_project_iam_member" "custom_policy" {
   role     = "projects/${var.project}/roles/secure_cicd_role"
   member   = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
 }
+
+# IAM Roles for the Compute Engine Service Account
+resource "google_project_iam_member" "compute_registry_reader" {
+  project  = var.project
+  role     = "roles/artifactregistry.reader"
+  member   = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
+}
+
+resource "google_project_iam_member" "compute_deploy_jobrunner" {
+  project  = var.project
+  role     = "roles/clouddeploy.jobRunner"
+  member   = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
+}
+
+resource "google_project_iam_member" "compute_container_developer" {
+  project  = var.project
+  role     = "roles/container.developer"
+  member   = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
+}
+
+# IAM membership for Binary Authorization service agents in GKE projects on attestors
+resource "google_project_service_identity" "binauth_service_agent" {
+  provider  = google-beta
+  project   = var.project
+  service   = "binaryauthorization.googleapis.com"
+}
+
+resource "google_binary_authorization_attestor_iam_member" "binauthz_verifier" {
+  project  = var.project
+  attestor = var.dev_attestor_id
+  role     = "roles/binaryauthorization.attestorsVerifier"
+  member   = "serviceAccount:${google_project_service_identity.binauth_service_agent.email}"
+}
