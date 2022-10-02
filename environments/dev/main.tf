@@ -37,6 +37,16 @@ module "gke_cluster" {
     master_ipv4_cidr= "10.${local.env == "dev" ? 10 : 20}.1.16/28"
 }
 */
+resource "google_artifact_registry_repository" "my-repo" {
+  provider      = google-beta
+  project       = var.project
+
+  location      = "us-central1"
+  repository_id = "${local.env == "dev" ? "dev" : "prod"}-repo"
+  description   = "Docker repository for binauthz demo"
+  format        = "DOCKER"
+}
+
 resource "google_container_analysis_note" "note" {
   name = "${local.env == "dev" ? "build" : "qa"}-attestor-note"
   attestation_authority {
@@ -60,6 +70,7 @@ resource "google_binary_authorization_attestor" "attestor" {
   }
 }
 
+# KMS resources
 resource "google_kms_key_ring" "keyring" {
   name     = "binauthz-${local.env == "dev" ? "build" : "qa"}-keyring"
   location = "global"
@@ -82,16 +93,6 @@ resource "google_kms_crypto_key" "crypto-key" {
 
 data "google_kms_crypto_key_version" "version" {
   crypto_key = google_kms_crypto_key.crypto-key.id
-}
-
-resource "google_artifact_registry_repository" "my-repo" {
-  provider      = google-beta
-  project       = var.project
-
-  location      = "us-central1"
-  repository_id = "${local.env == "dev" ? "dev" : "prod"}-repo"
-  description   = "Docker repository for binauthz demo"
-  format        = "DOCKER"
 }
 
 /*
