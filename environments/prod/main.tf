@@ -134,14 +134,14 @@ resource "google_secret_manager_secret_iam_binding" "signing_secret_binding" {
 
 # GCS bucket to store raw files to be scanned by DLP
 resource "google_storage_bucket" "raw_bucket" {
-  name                          = "${var.project}_raw_bucket"
+  name                          = "${var.project}-raw-bucket"
   location                      = var.region
   uniform_bucket_level_access   = true
 }
 
 # GCS bucket to store redacted files scanned by DLP
 resource "google_storage_bucket" "redacted_bucket" {
-  name                          = "${var.project}_redacted_bucket"
+  name                          = "${var.project}-redacted-bucket"
   location                      = var.region
   uniform_bucket_level_access   = true
 }
@@ -159,13 +159,20 @@ module "dlp-scan-cloud-function" {
     triggers        = [
         {
             event_type  = "google.storage.object.finalize"
-            resource    = "${var.project}_raw_bucket"
+            resource    = google_storage_bucket.raw_bucket.name
         }
     ]
 }
 
+# IAM entry for service account of dlp-scan function to read from raw bucket
+resource "google_storage_bucket_iam_member" "raw_bucket_read" {
+  bucket = google_storage_bucket.raw_bucket.name
+  role = "roles/storage.objectViewer"
+  member = "serviceAccount:${module.dlp-scan-cloud-function.sa-email}"
+}
+
 # IAM entry for service account of dlp-scan function to write to redacted bucket
-resource "google_storage_bucket_iam_member" "member" {
+resource "google_storage_bucket_iam_member" "redacted_bucket_write" {
   bucket = google_storage_bucket.redacted_bucket.name
   role = "roles/storage.objectCreator"
   member = "serviceAccount:${module.dlp-scan-cloud-function.sa-email}"
