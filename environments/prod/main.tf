@@ -88,7 +88,7 @@ resource "google_cloudfunctions_function_iam_member" "provision-access-invoker" 
 }
 
 # IAM entry for service account of provision-access function to manage IAM policies
-resource "google_organization_iam_member" "organization" {
+resource "google_organization_iam_member" "provision_access_org_iam_admin" {
   org_id    = var.organization
   role      = "roles/resourcemanager.projectIamAdmin"
   member    = "serviceAccount:${module.provision-access-cloud-function.sa-email}"
@@ -362,7 +362,6 @@ resource "google_clouddeploy_delivery_pipeline" "pipeline" {
   }
 }
 
-
 # Binary Authorization Policy
 resource "google_binary_authorization_policy" "binauthz_policy" {
   project = var.project
@@ -382,6 +381,175 @@ resource "google_binary_authorization_policy" "binauthz_policy" {
     enforcement_mode        = "ENFORCED_BLOCK_AND_AUDIT_LOG"
     require_attestations_by = [var.dev_attestor_id]
   }
+}
+
+module "scc-automation-cloud-function" {
+    source          = "../../modules/cloud_function"
+    project         = var.project
+    function-name   = "scc-automation"
+    function-desc   = "triggered by scc-notifications-topic, communicates findings reported by scc"
+    entry-point     = "scc_automation"
+    env-vars        = {
+        SLACK_CHANNEL = var.slack_secops_channel,
+    }
+    secrets         = [
+        {
+            key = "SLACK_ACCESS_TOKEN"
+            id  = google_secret_manager_secret.slack-bot-access-token.secret_id
+        }
+    ]
+    triggers        = [
+        {
+            event_type  = "google.pubsub.topic.publish"
+            resource    = var.scc_notifications_topic
+        }
+    ]
+}
+
+resource "google_secret_manager_secret" "slack-bot-access-token" {
+  project   = var.project
+  secret_id = "slack-bot-access-token"
+
+  replication {
+    automatic = true
+  }
+}
+
+# IAM entry for service account of scc-automation function to use the slack bot token
+resource "google_secret_manager_secret_iam_binding" "scc_bot_token_binding" {
+  project   = google_secret_manager_secret.slack-bot-access-token.project
+  secret_id = google_secret_manager_secret.slack-bot-access-token.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  members    = [
+      "serviceAccount:${module.scc-automation-cloud-function.sa-email}",
+  ]
+}
+
+module "scc-remediation-cloud-function" {
+    source          = "../../modules/cloud_function"
+    project         = var.project
+    function-name   = "scc-remediation"
+    function-desc   = "intakes requests from slack for responses to scc findings"
+    entry-point     = "scc_remediation"
+    secrets         = [
+        {
+            key = "SLACK_SIGNING_SECRET"
+            id  = google_secret_manager_secret.slack-signing-secret.secret_id
+        }
+    ]
+}
+
+# IAM entry for all users to invoke the scc-remediation function
+resource "google_cloudfunctions_function_iam_member" "scc-remediation-invoker" {
+  project        = var.project
+  region         = var.region
+  cloud_function = module.scc-remediation-cloud-function.function_name
+
+  role   = "roles/cloudfunctions.invoker"
+  member = "allUsers"
+}
+
+resource "google_secret_manager_secret" "slack-signing-secret" {
+  project   = var.project
+  secret_id = "slack-signing-secret"
+
+  replication {
+    automatic = true
+  }
+}
+
+# IAM entry for service account of scc-remediation function to use the slack signing secret
+resource "google_secret_manager_secret_iam_binding" "scc_signing_secret_binding" {
+  project   = google_secret_manager_secret.slack-signing-secret.project
+  secret_id = google_secret_manager_secret.slack-signing-secret.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  members    = [
+      "serviceAccount:${module.scc-remediation-cloud-function.sa-email}",
+  ]
+}
+
+module "mute-finding-cloud-function" {
+    source          = "../../modules/cloud_function"
+    project         = var.project
+    function-name   = "mute-finding"
+    function-desc   = "mutes scc findings"
+    entry-point     = "mute_finding"
+}
+
+# IAM entry for service account of scc-remediation function to invoke the mute-finding function
+resource "google_cloudfunctions_function_iam_member" "mute-finding-invoker" {
+  project        = var.project
+  region         = var.region
+  cloud_function = module.mute-finding-cloud-function.function_name
+
+  role   = "roles/cloudfunctions.invoker"
+  member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
+}
+
+# IAM entry for service account of mute-finding function to mute SCC findings
+resource "google_organization_iam_member" "mute_finding_org_role" {
+  org_id    = var.organization
+  role      = "roles/securitycenter.findingsMuteSetter"
+  member    = "serviceAccount:${module.mute-finding-cloud-function.sa-email}"
+}
+
+# Create a custom IAM role for the scc-remediation function over the entire org
+resource "google_organization_iam_custom_role" "scc-remediation-custom-role" {
+  role_id     = "scc_remediation_custom_role"
+  org_id      = var.organization
+  title       = "Custom Role for SCC Remediation Cloud Functions"
+  description = "This role is used by various remediate-* function SAs to remediate SCC findings"
+  permissions = ["compute.firewalls.delete","compute.instances.delete","compute.networks.updatePolicy","compute.globalOperations.get","compute.zoneOperations.get"]
+}
+
+module "remediate-firewall-cloud-function" {
+    source          = "../../modules/cloud_function"
+    project         = var.project
+    function-name   = "remediate-firewall"
+    function-desc   = "remediates scc findings related to misconfigured firewalls"
+    entry-point     = "remediate_firewall"
+}
+
+# IAM entry for service account of scc-remediation function to invoke the remediate-firewall function
+resource "google_cloudfunctions_function_iam_member" "remediate-firewall-invoker" {
+  project        = var.project
+  region         = var.region
+  cloud_function = module.remediate-firewall-cloud-function.function_name
+
+  role   = "roles/cloudfunctions.invoker"
+  member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
+}
+
+# IAM entry for service account of remediate-firewall function
+resource "google_organization_iam_member" "remediate_firewall_org_scc_remediation" {
+  org_id    = var.organization
+  role      = google_organization_iam_custom_role.scc-remediation-custom-role.name
+  member    = "serviceAccount:${module.remediate-firewall-cloud-function.sa-email}"
+}
+
+module "remediate-instance-cloud-function" {
+    source          = "../../modules/cloud_function"
+    project         = var.project
+    function-name   = "remediate-instance"
+    function-desc   = "remediates scc findings related to misconfigured instances"
+    entry-point     = "remediate_instance"
+}
+
+# IAM entry for service account of scc-remediation function to invoke the remediate-instance function
+resource "google_cloudfunctions_function_iam_member" "remediate-instance-invoker" {
+  project        = var.project
+  region         = var.region
+  cloud_function = module.remediate-instance-cloud-function.function_name
+
+  role   = "roles/cloudfunctions.invoker"
+  member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
+}
+
+# IAM entry for service account of remediate-instance function
+resource "google_organization_iam_member" "remediate_instance_org_scc_remediation" {
+  org_id    = var.organization
+  role      = google_organization_iam_custom_role.scc-remediation-custom-role.name
+  member    = "serviceAccount:${module.remediate-instance-cloud-function.sa-email}"
 }
 
 /*
