@@ -10,6 +10,8 @@ resource "google_container_cluster" "cluster" {
   network                       = var.network
   subnetwork                    = var.subnetwork
 
+  node_locations                = ["${var.region}-c",]
+
   remove_default_node_pool      = true
   initial_node_count            = 1
   
