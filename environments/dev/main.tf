@@ -63,75 +63,34 @@ resource "google_project_iam_member" "compute_container_admin" {
   member   = "serviceAccount:${module.gke_cluster.service-account}"
 }
 
-resource "google_artifact_registry_repository" "my-repo" {
+# Binary Authorization Policy for the dev gke_cluster
+resource "google_binary_authorization_policy" "dev_binauthz_policy" {
+  project = var.project
+  
+  admission_whitelist_patterns {
+    name_pattern = "gcr.io/google_containers/*"
+  }
+
+  default_admission_rule {
+    evaluation_mode  = "ALWAYS_ALLOW"
+    enforcement_mode = "ENFORCED_BLOCK_AND_AUDIT_LOG"
+  }
+  
+  cluster_admission_rules {
+    cluster                 = "${var.region}.${module.gke_cluster.name}"
+    evaluation_mode         = "REQUIRE_ATTESTATION"
+    enforcement_mode        = "ENFORCED_BLOCK_AND_AUDIT_LOG"
+    require_attestations_by = ["projects/${var.project}/attestors/built-by-cloud-build"]
+  }
+}
+
+# Artifact Registry repo for binauthz-demo
+resource "google_artifact_registry_repository" "binauth-demo-repo" {
   provider      = google-beta
   project       = var.project
 
-  location      = "us-central1"
-  repository_id = "${local.env == "dev" ? "dev" : "prod"}-repo"
+  location      = var.region
+  repository_id = "binauth-demo-repo"
   description   = "Docker repository for binauthz demo"
   format        = "DOCKER"
 }
-
-resource "google_container_analysis_note" "note" {
-  name = "${local.env == "dev" ? "build" : "qa"}-attestor-note"
-  attestation_authority {
-    hint {
-      human_readable_name = "My Binary Authorization Demo!"
-    }
-  }
-}
-
-resource "google_binary_authorization_attestor" "attestor" {
-  name = "${local.env == "dev" ? "build" : "qa"}-attestor"
-  attestation_authority_note {
-    note_reference = google_container_analysis_note.note.name
-    public_keys {
-      id = data.google_kms_crypto_key_version.version.id
-      pkix_public_key {
-        public_key_pem      = data.google_kms_crypto_key_version.version.public_key[0].pem
-        signature_algorithm = data.google_kms_crypto_key_version.version.public_key[0].algorithm
-      }
-    }
-  }
-}
-
-# KMS resources
-resource "google_kms_key_ring" "keyring" {
-  name     = "binauthz-${local.env == "dev" ? "build" : "qa"}-keyring"
-  location = "global"
-}
-
-resource "google_kms_crypto_key" "crypto-key" {
-  name     = "${local.env == "dev" ? "build" : "qa"}-attestor-key"
-  key_ring = google_kms_key_ring.keyring.id
-  purpose  = "ASYMMETRIC_SIGN"
-
-  version_template {
-    algorithm           = "EC_SIGN_P256_SHA256"
-    protection_level    = "SOFTWARE"
-  }
-
-  lifecycle {
-    prevent_destroy = true
-  }
-}
-
-data "google_kms_crypto_key_version" "version" {
-  crypto_key = google_kms_crypto_key.crypto-key.id
-}
-
-/*
-module "instance_template" {
-  source  = "../../modules/instance_template"
-  project = "${var.project}"
-  subnet  = "${module.vpc.subnet}"
-}
-
-module "load_balancer" {
-  source  = "../../modules/load_balancer"
-  project = "${var.project}"
-  subnet  = "${module.vpc.subnet}"
-  instance_template_id = "${module.instance_template.instance_template_id}"
-}
-*/
