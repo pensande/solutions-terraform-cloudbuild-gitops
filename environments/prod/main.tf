@@ -36,26 +36,32 @@ resource "google_storage_bucket" "bucket" {
 ############################################
 ## Secure CI/CD Binary Authorization Demo ##
 ############################################
-/*
-resource "google_compute_network" "vpc" {
-  name                    = "${local.env}-vpc"
-  auto_create_subnetworks = false
-}
 
-resource "google_compute_subnetwork" "subnet" {
-  name                      = "${local.env}-subnet-01"
-  ip_cidr_range             = "10.${local.env == "dev" ? 10 : 20}.0.0/24"
-  region                    = "${var.region}"
-  network                   = google_compute_network.vpc.id
-  private_ip_google_access  = true
+module "vpc" {
+  source            = "../../modules/vpc"
+  project           = var.project
+  env               = local.env
+  region            = var.region
+  secondary_ranges  = {
+    "${local.env}-subnet-01" = [
+        {
+            range_name      = "cluster-ipv4-cidr-block"
+            ip_cidr_range   = "10.224.0.0/14"
+        },
+        {
+            range_name      = "services-ipv4-cidr-block"
+            ip_cidr_range   = "10.228.0.0/20"
+        }
+    ]
+  }
 }
 
 module "gke_cluster" {
     source          = "../../modules/gke_cluster"
     cluster_name    = "${local.env}-binauthz"
     region          = var.region
-    network         = google_compute_network.vpc.id
-    subnetwork      = google_compute_subnetwork.subnet.id
+    network         = module.vpc.id
+    subnetwork      = module.vpc.subnet
     master_ipv4_cidr= "10.${local.env == "dev" ? 10 : 20}.1.16/28"
 }
 
@@ -77,7 +83,7 @@ resource "google_project_iam_member" "compute_container_admin" {
   role     = "roles/container.admin"
   member   = "serviceAccount:${module.gke_cluster.service-account}"
 }
-*/
+
 resource "google_pubsub_topic" "operations-pubsub" {
   name                          = "clouddeploy-operations"
   message_retention_duration    = "86400s"
@@ -145,7 +151,7 @@ resource "google_clouddeploy_target" "dev-cluster-target" {
     google_project_iam_member.clouddeploy_service_agent_role
   ]
 }
-/*
+
 resource "google_clouddeploy_target" "prod-cluster-target" {
   name              = "prod-cluster"
   description       = "Target for prod environment"
@@ -183,7 +189,7 @@ resource "google_clouddeploy_delivery_pipeline" "pipeline" {
     }
   }
 }
-*/
+
 # KMS resources
 resource "google_kms_key_ring" "keyring" {
   name     = "${local.attestor_name}-keyring"
@@ -231,7 +237,7 @@ resource "google_binary_authorization_attestor" "attestor" {
     }
   }
 }
-/*
+
 # Binary Authorization Policy for the dev and prod gke_clusters
 resource "google_binary_authorization_policy" "prod_binauthz_policy" {
   project = var.project
@@ -259,7 +265,7 @@ resource "google_binary_authorization_policy" "prod_binauthz_policy" {
     require_attestations_by = ["projects/${var.project}/attestors/built-by-cloud-build","${google_binary_authorization_attestor.attestor.id}"]
   }
 }
-*/
+
 ###########################################
 ## JIT Privileged Access Management Demo ##
 ###########################################
