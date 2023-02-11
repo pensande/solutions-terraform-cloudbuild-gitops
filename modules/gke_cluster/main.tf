@@ -32,8 +32,8 @@ resource "google_container_cluster" "cluster" {
   }
 
   ip_allocation_policy {
-    cluster_ipv4_cidr_block     = "10.224.0.0/14"
-    services_ipv4_cidr_block    = "10.228.0.0/20"
+    cluster_secondary_range_name    = "cluster-ipv4-cidr-block"
+    services_secondary_range_name   = "services-ipv4_cidr-block"
   }
 }
 
