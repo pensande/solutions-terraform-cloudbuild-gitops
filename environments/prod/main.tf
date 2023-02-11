@@ -37,40 +37,31 @@ resource "google_storage_bucket" "bucket" {
 ## Secure CI/CD Binary Authorization Demo ##
 ############################################
 
-resource "google_compute_network" "vpc" {
-  name                    = "${local.env}-vpc"
-  auto_create_subnetworks = false
-}
-
-resource "google_compute_subnetwork" "subnet" {
-  name                      = "${local.env}-subnet-01"
-  ip_cidr_range             = "10.${local.env == "dev" ? 10 : 20}.0.0/24"
-  region                    = "${var.region}"
-  network                   = google_compute_network.vpc.id
-  private_ip_google_access  = true
-}
-
-/*
 module "vpc" {
-  source  = "../../modules/vpc"
-  project = "${var.project}"
-  env     = "${local.env}"
-  region  = "${var.region}"
+  source            = "../../modules/vpc"
+  project           = var.project
+  env               = local.env
+  region            = var.region
+  secondary_ranges  = {
+    "${local.env}-subnet-01" = [
+        {
+            range_name      = "cluster-ipv4-cidr-block"
+            ip_cidr_range   = "10.224.0.0/14"
+        },
+        {
+            range_name      = "services-ipv4-cidr-block"
+            ip_cidr_range   = "10.228.0.0/20"
+        }
+    ]
+  }
 }
 
-module "cloud_nat" {
-  source  = "../../modules/cloud_nat"
-  project = "${var.project}"
-  network = "${module.vpc.network}"
-  region  = "${var.region}"
-}
-*/
 module "gke_cluster" {
     source          = "../../modules/gke_cluster"
     cluster_name    = "${local.env}-binauthz"
     region          = var.region
-    network         = google_compute_network.vpc.id
-    subnetwork      = google_compute_subnetwork.subnet.id
+    network         = module.vpc.id
+    subnetwork      = module.vpc.subnet
     master_ipv4_cidr= "10.${local.env == "dev" ? 10 : 20}.1.16/28"
 }
 
@@ -247,7 +238,7 @@ resource "google_binary_authorization_attestor" "attestor" {
   }
 }
 
-# Binary Authorization Policy for the prod gke_cluster
+# Binary Authorization Policy for the dev and prod gke_clusters
 resource "google_binary_authorization_policy" "prod_binauthz_policy" {
   project = var.project
   
@@ -260,6 +251,13 @@ resource "google_binary_authorization_policy" "prod_binauthz_policy" {
     enforcement_mode = "ENFORCED_BLOCK_AND_AUDIT_LOG"
   }
   
+  cluster_admission_rules {
+    cluster                 = "${var.region}.${var.dev_cluster_name}"
+    evaluation_mode         = "REQUIRE_ATTESTATION"
+    enforcement_mode        = "ENFORCED_BLOCK_AND_AUDIT_LOG"
+    require_attestations_by = ["projects/${var.project}/attestors/built-by-cloud-build"]
+  }
+
   cluster_admission_rules {
     cluster                 = "${var.region}.${module.gke_cluster.name}"
     evaluation_mode         = "REQUIRE_ATTESTATION"

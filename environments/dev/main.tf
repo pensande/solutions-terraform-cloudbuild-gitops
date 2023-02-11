@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 locals {
   env = "dev"
 }
@@ -22,24 +21,36 @@ provider "google" {
 }
 
 module "vpc" {
-  source  = "../../modules/vpc"
-  project = "${var.project}"
-  env     = "${local.env}"
-  region  = "${var.region}"
+  source            = "../../modules/vpc"
+  project           = var.project
+  env               = local.env
+  region            = var.region
+  secondary_ranges  = {
+    "${local.env}-subnet-01" = [
+        {
+            range_name      = "cluster-ipv4-cidr-block"
+            ip_cidr_range   = "10.224.0.0/14"
+        },
+        {
+            range_name      = "services-ipv4-cidr-block"
+            ip_cidr_range   = "10.228.0.0/20"
+        }
+    ]
+  }
 }
 
 module "cloud_nat" {
   source  = "../../modules/cloud_nat"
-  project = "${var.project}"
-  network = "${module.vpc.network}"
-  region  = "${var.region}"
+  project = var.project
+  network = module.vpc.name
+  region  = var.region
 }
-/*
+
 module "gke_cluster" {
     source          = "../../modules/gke_cluster"
     cluster_name    = "${local.env}-binauthz"
     region          = var.region
-    network         = module.vpc.network
+    network         = module.vpc.id
     subnetwork      = module.vpc.subnet
     master_ipv4_cidr= "10.${local.env == "dev" ? 10 : 20}.1.16/28"
 }
@@ -63,27 +74,6 @@ resource "google_project_iam_member" "compute_container_admin" {
   member   = "serviceAccount:${module.gke_cluster.service-account}"
 }
 
-# Binary Authorization Policy for the dev gke_cluster
-resource "google_binary_authorization_policy" "dev_binauthz_policy" {
-  project = var.project
-  
-  admission_whitelist_patterns {
-    name_pattern = "gcr.io/google_containers/*"
-  }
-
-  default_admission_rule {
-    evaluation_mode  = "ALWAYS_ALLOW"
-    enforcement_mode = "ENFORCED_BLOCK_AND_AUDIT_LOG"
-  }
-  
-  cluster_admission_rules {
-    cluster                 = "${var.region}.${module.gke_cluster.name}"
-    evaluation_mode         = "REQUIRE_ATTESTATION"
-    enforcement_mode        = "ENFORCED_BLOCK_AND_AUDIT_LOG"
-    require_attestations_by = ["projects/${var.project}/attestors/built-by-cloud-build"]
-  }
-}
-*/
 # Artifact Registry repo for binauthz-demo
 resource "google_artifact_registry_repository" "binauthz-demo-repo" {
   provider      = google-beta
