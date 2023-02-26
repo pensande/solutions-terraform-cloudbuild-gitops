@@ -35,6 +35,10 @@ resource "google_container_cluster" "cluster" {
     cluster_secondary_range_name    = "cluster-ipv4-cidr-block"
     services_secondary_range_name   = "services-ipv4-cidr-block"
   }
+
+  workload_identity_config {
+    workload_pool = "${var.project}.svc.id.goog"
+  }
 }
 
 resource "google_container_node_pool" "primary_preemptible_nodes" {
@@ -44,11 +48,15 @@ resource "google_container_node_pool" "primary_preemptible_nodes" {
   node_count = 1
 
   node_config {
-    machine_type = "e2-micro"
+    machine_type = "e2-medium"
 
     shielded_instance_config {
         enable_integrity_monitoring = true 
         enable_secure_boot          = true
+    }
+
+    workload_metadata_config {
+        mode = "GKE_METADATA"
     }
     
     # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
