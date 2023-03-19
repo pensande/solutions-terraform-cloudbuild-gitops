@@ -20,6 +20,11 @@ provider "google" {
   project = "${var.project}"
 }
 
+provider "google-beta" {
+  project   = var.project
+  region    = var.region
+}
+
 module "vpc" {
   source            = "../../modules/vpc"
   project           = var.project
@@ -116,4 +121,112 @@ resource "google_artifact_registry_repository" "binauthz-demo-repo" {
   repository_id = "binauthz-demo-repo"
   description   = "Docker repository for binauthz demo"
   format        = "DOCKER"
+}
+
+resource "google_compute_address" "lb_ip_address" {
+  name          = "dev-lb-static-ip"
+  project       = var.project
+  region        = var.region 
+  address_type  = "EXTERNAL"
+  description   = "static ip address for the dev loadbalancer"
+}
+/*
+resource "google_recaptcha_enterprise_key" "recaptcha_test_site_key" {
+  display_name  = "recaptcha-test-site-key"
+  project       = var.demo_project
+
+  testing_options {
+    testing_score = 0.5
+  }
+
+  web_settings {
+    integration_type  = "SCORE"
+    allow_all_domains = false
+    allow_amp_traffic = false
+    allowed_domains   = ["agarsand.demo.altostrat.com"]
+  }
+}
+
+resource "google_recaptcha_enterprise_key" "recaptcha_redirect_site_key" {
+  display_name  = "recaptcha-redirect-site-key"
+  project       = var.demo_project
+
+  web_settings {
+    integration_type              = "INVISIBLE"
+    allow_all_domains             = false
+    allowed_domains               = [agarsand.demo.altostrat.com]
+    challenge_security_preference = "USABILITY"
+  }
+}
+*/
+# Cloud Armor WAF Policy for Dev Backends
+resource "google_compute_security_policy" "dev_waf_security_policy" {
+  name          = "dev-waf-security-policy"
+  description   = "Cloud Armor Security Policy"
+  project       = var.project
+  #type          = "CLOUD_ARMOR"
+
+  #recaptcha_options_config {
+  #  redirect_site_key = google_recaptcha_enterprise_key.recaptcha_redirect_site_key.name
+  #}
+
+  rule {
+    action   = "allow"
+    priority = "2147483647"
+    match {
+      versioned_expr = "SRC_IPS_V1"
+      config {
+        src_ip_ranges = ["*"]
+      }
+    }
+    description = "default rule"
+  }
+
+  rule {
+    action   = "deny(403)"
+    priority = "7000"
+    match {
+      expr {
+        expression = "origin.region_code != 'IN'"
+      }
+    }
+    description = "Allow only Indians. Mera Bharat Mahan! :)"
+  }
+
+  rule {
+    action   = "allow"
+    priority = "8000"
+    match {
+      expr {
+        expression = "request.path.matches('good-score.html') && token.recaptcha_session.score > 0.4"
+      }
+    }
+    description = "Allow if the recaptcha session score is above threshold"
+  }
+
+  rule {
+    action   = "deny(403)"
+    priority = "9000"
+    match {
+      expr {
+        expression = "request.path.matches('bad-score.html') && token.recaptcha_session.score < 0.6"
+      }
+    }
+    description = "Deny if the recaptcha session score is below threshold"
+  }
+/*
+  rule {
+    action   = "redirect"
+    priority = "10000"
+    match {
+      expr {
+        expression = "request.path.matches('median-score.html') && token.recaptcha_session.score == 0.5"
+      }
+    }
+    redirect_options {
+      type = "GOOGLE_RECAPTCHA"
+    }
+    description = "Redirect if the recaptcha session score is between thresholds"
+  }
+*/
 }
