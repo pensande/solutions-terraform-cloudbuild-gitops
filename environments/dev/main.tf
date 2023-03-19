@@ -20,11 +20,6 @@ provider "google" {
   project = "${var.project}"
 }
 
-provider "google-beta" {
-  project   = var.project
-  region    = var.region
-}
-
 module "vpc" {
   source            = "../../modules/vpc"
   project           = var.project
@@ -130,8 +125,9 @@ resource "google_compute_address" "lb_ip_address" {
   address_type  = "EXTERNAL"
   description   = "static ip address for the dev loadbalancer"
 }
-/*
+
 resource "google_recaptcha_enterprise_key" "recaptcha_test_site_key" {
+  provider      = google-beta
   display_name  = "recaptcha-test-site-key"
   project       = var.demo_project
 
@@ -148,27 +144,29 @@ resource "google_recaptcha_enterprise_key" "recaptcha_test_site_key" {
 }
 
 resource "google_recaptcha_enterprise_key" "recaptcha_redirect_site_key" {
+  provider      = google-beta
   display_name  = "recaptcha-redirect-site-key"
   project       = var.demo_project
 
   web_settings {
     integration_type              = "INVISIBLE"
     allow_all_domains             = false
-    allowed_domains               = [agarsand.demo.altostrat.com]
+    allowed_domains               = ["agarsand.demo.altostrat.com"]
     challenge_security_preference = "USABILITY"
   }
 }
-*/
+
 # Cloud Armor WAF Policy for Dev Backends
 resource "google_compute_security_policy" "dev_waf_security_policy" {
+  provider      = google-beta
   name          = "dev-waf-security-policy"
   description   = "Cloud Armor Security Policy"
   project       = var.project
-  #type          = "CLOUD_ARMOR"
+  type          = "CLOUD_ARMOR"
 
-  #recaptcha_options_config {
-  #  redirect_site_key = google_recaptcha_enterprise_key.recaptcha_redirect_site_key.name
-  #}
+  recaptcha_options_config {
+    redirect_site_key = "6LcGeukhAAAAAAfjGfl0YIEtMEoUIy2uq_QjhJBQ"
+  }
 
   rule {
     action   = "allow"
@@ -214,7 +212,7 @@ resource "google_compute_security_policy" "dev_waf_security_policy" {
     }
     description = "Deny if the recaptcha session score is below threshold"
   }
-/*
+
   rule {
     action   = "redirect"
     priority = "10000"
@@ -228,5 +226,4 @@ resource "google_compute_security_policy" "dev_waf_security_policy" {
     }
     description = "Redirect if the recaptcha session score is between thresholds"
   }
-*/
 }
