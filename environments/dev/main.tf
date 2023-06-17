@@ -366,15 +366,92 @@ resource "google_secret_manager_secret" "pulumi_access_token" {
 ## IAP, Cloud Run, Cloud SQL Demo ##
 ####################################
 
-resource "google_compute_global_address" "iap_run_ip_address" {
+# reserved IP address
+resource "google_compute_global_address" "iap_run_sql_demo" {
   name          = "iap-run-sql-demo"
   project       = var.project
 }
 
+resource "google_compute_managed_ssl_certificate" "iap_run_sql_demo" {
+  name = "iap-run-sql-demo-cert"
+
+  managed {
+    domains = ["run.agarsand.demo.altostrat.com."]
+  }
+}
+
+# forwarding rule
+resource "google_compute_global_forwarding_rule" "https" {
+  project               = var.project
+  name                  = "iap-run-sql-demo-https-fw-rule"
+  ip_protocol           = "TCP"
+  load_balancing_scheme = "EXTERNAL"
+  port_range            = "443"
+  target                = google_compute_target_https_proxy.iap_run_sql_demo.id
+  ip_address            = google_compute_global_address.iap_run_sql_demo.id
+}
+
+# http proxy
+resource "google_compute_target_https_proxy" "iap_run_sql_demo" {
+  name        = "iap-run-sql-demo"
+  url_map     = google_compute_url_map.iap_run_sql_demo.id
+  ssl_certificates = [google_compute_managed_ssl_certificate.iap_run_sql_demo.id]
+}
+
+# url map
+resource "google_compute_url_map" "iap_run_sql_demo" {
+  name            = "iap-run-sql-demo-url-map"
+  description     = "a description"
+  default_service = google_compute_backend_service.iap_run_sql_demo_backend.id
+
+  host_rule {
+    hosts        = ["run.agarsand.demo.altostrat.com"]
+    path_matcher = "allpaths"
+  }
+
+  path_matcher {
+    name            = "allpaths"
+    default_service = google_compute_backend_service.iap_run_sql_demo_backend.id
+
+    path_rule {
+      paths   = ["/*"]
+      service = google_compute_backend_service.iap_run_sql_demo_backend.id
+    }
+  }
+}
+
+# backend service
+resource "google_compute_backend_service" "iap_run_sql_demo_backend" {
+  name                  = "iap-run-sql-demo-serverless-backend"
+  port_name             = "http"
+  protocol              = "HTTP"
+  timeout_sec           = 10
+  backend {
+    group                        = google_compute_region_network_endpoint_group.iap_run_sql_demo_neg.id
+    balancing_mode               = "RATE"
+    max_rate_per_endpoint = 10
+  }
+
+  #iap {
+  #  oauth2_client_id     = null
+  #  oauth2_client_secret = null
+  #}
+}
+
+# network endpoint group
+resource "google_compute_region_network_endpoint_group" "iap_run_sql_demo_neg" {
+  name                  = "iap-run-sql-demo-neg"
+  network_endpoint_type = "SERVERLESS"
+  region                = var.region
+  cloud_run {
+    service = google_cloud_run_service.iap_run_service.name
+  }
+}
+
 # Create the Cloud Run service
 resource "google_cloud_run_service" "iap_run_service" {
-  name = "iap-run-sql-demo"
-  location = "us-central1"
+  name      = "iap-run-sql-demo"
+  location  = var.region
 
   template {
     spec {
@@ -383,6 +460,14 @@ resource "google_cloud_run_service" "iap_run_service" {
       }
     }
   }
+
+  metadata {
+      annotations = {
+        "autoscaling.knative.dev/maxScale"      = "2"
+        "run.googleapis.com/cloudsql-instances" = google_sql_database_instance.iap_run_sql_demo_db_instance.connection_name
+        "run.googleapis.com/client-name"        = "terraform"
+      }
+    }
 
   traffic {
     percent         = 100
@@ -396,4 +481,35 @@ resource "google_cloud_run_service_iam_member" "run_all_users" {
   location = google_cloud_run_service.iap_run_service.location
   role     = "roles/run.invoker"
   member   = "allUsers"
+}
+
+resource "google_sql_database" "iap_run_sql_demo_database" {
+  name     = "iap-run-sql-demo-db"
+  instance = google_sql_database_instance.iap_run_sql_demo_db_instance.name
+}
+
+resource "google_sql_database_instance" "iap_run_sql_demo_db_instance" {
+  name             = "iap-run-sql-demo-db-instance"
+  region           = var.region
+  database_version = "POSTGRES_14"
+  settings {
+    tier = "db-f1-micro"
+
+    ip_configuration {
+      ipv4_enabled  = true
+      require_ssl   = true
+
+      dynamic "authorized_networks" {
+        for_each    = var.onprem_ips
+        iterator    = onprem_ip
+
+        content {
+          name      = "onprem_ip-${onprem_ip.key}"
+          value     = onprem_ip.value
+        }
+      }
+    }
+  }
+
+  deletion_protection  = "false"
 }
