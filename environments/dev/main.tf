@@ -430,8 +430,6 @@ resource "google_compute_backend_service" "iap_run_sql_demo_backend" {
 
   backend {
     group                   = google_compute_region_network_endpoint_group.iap_run_sql_demo_neg.id
-    balancing_mode          = "RATE"
-    max_rate_per_endpoint   = 10
   }
 
   log_config {
@@ -532,14 +530,14 @@ resource "google_sql_user" "db_user" {
   type     = "CLOUD_IAM_USER"
 }
 
-resource "google_project_iam_member" "user" {  
- member  = "pensande@agarsand.altostrat.com"  
- project = var.project
- role   = "roles/cloudsql.instanceUser"  
-}
+resource "google_project_iam_member" "sql_user_policy" {  
+  project   = var.project
+  role      = "roles/cloudsql.instanceUser"
+  member    = "user:pensande@agarsand.altostrat.com"
+} 
 
-resource "google_project_iam_member" "client" {  
- member  = "pensande@agarsand.altostrat.com"  
- project = var.project
- role   = "roles/cloudsql.client"  
+resource "google_project_iam_member" "sql_client_policy" {  
+  project   = var.project
+  role      = "roles/cloudsql.client"
+  member    = "user:pensande@agarsand.altostrat.com"
 }
