@@ -53,3 +53,13 @@ resource "google_project_service" "data_loss_prevention" {
   project = var.project
   service = "dlp.googleapis.com"
 }
+
+resource "google_project_service" "cloud_sql" {
+  project = var.project
+  service = "sqladmin.googleapis.com"
+}
+
+resource "google_project_service" "iap" {
+  project = var.project
+  service = "iap.googleapis.com"
+}
