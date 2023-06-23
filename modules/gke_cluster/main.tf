@@ -3,6 +3,25 @@ resource "google_service_account" "default" {
   display_name = "sa-${var.cluster_name}-gke-cluster"
 }
 
+# IAM Roles for the node pool service account
+resource "google_project_iam_member" "compute_registry_reader" {
+  project   = var.project
+  role      = "roles/artifactregistry.reader"
+  member    = "serviceAccount:${google_service_account.default.email}"
+}
+
+resource "google_project_iam_member" "compute_deploy_jobrunner" {
+  project  = var.project
+  role     = "roles/clouddeploy.jobRunner"
+  member   = "serviceAccount:${google_service_account.default.email}"
+}
+
+resource "google_project_iam_member" "compute_container_admin" {
+  project   = var.project
+  role      = "roles/container.admin"
+  member    = "serviceAccount:${google_service_account.default.email}"
+}
+
 resource "google_container_cluster" "cluster" {
   name                          = var.cluster_name
   description                   = "terraform-created gke cluster"
