@@ -55,6 +55,10 @@ module "gke_cluster" {
     network         = module.vpc.id
     subnetwork      = module.vpc.subnet
     master_ipv4_cidr= "10.${local.env == "dev" ? 10 : 20}.1.16/28"
+    
+    depends_on = [
+      google_compute_security_policy.armor_waf_security_policy
+    ]
 }
 
 # Workload Identity for the Kubernetes Cluster
@@ -136,16 +140,16 @@ resource "google_recaptcha_enterprise_key" "recaptcha_redirect_site_key" {
 }
 */
 # Cloud Armor WAF Policy for Dev Backends
-resource "google_compute_security_policy" "gke_waf_security_policy" {
-  count         = var.create_dev_gke_cluster ? 1 : 0
+resource "google_compute_security_policy" "armor_waf_security_policy" {
+  count         = var.create_dev_gke_cluster || var.create_iap_run_sql_demo ? 1 : 0
   provider      = google-beta
-  name          = "gke-waf-security-policy"
+  name          = "armor-waf-security-policy"
   description   = "Cloud Armor Security Policy"
   project       = var.project
   type          = "CLOUD_ARMOR"
 
   recaptcha_options_config {
-    redirect_site_key = "6LcGeukhAAAAAAfjGfl0YIEtMEoUIy2uq_QjhJBQ"
+    redirect_site_key = var.recaptcha_site_key
   }
 
   rule {
@@ -165,7 +169,7 @@ resource "google_compute_security_policy" "gke_waf_security_policy" {
     priority = "3000"
     match {
       expr {
-        expression = "evaluatePreconfiguredExpr('sqli-stable', ['owasp-crs-v030001-id942251-sqli', 'owasp-crs-v030001-id942420-sqli', 'owasp-crs-v030001-id942431-sqli', 'owasp-crs-v030001-id942460-sqli', 'owasp-crs-v030001-id942421-sqli', 'owasp-crs-v030001-id942432-sqli'])"
+        expression = "evaluatePreconfiguredWaf('sqli-v33-stable', {'sensitivity': 1})"
       }
     }
     description = "Allow only Indians. Mera Bharat Mahan! :)"
@@ -410,13 +414,14 @@ resource "google_compute_backend_service" "iap_run_sql_demo_backend" {
   port_name             = "http"
   protocol              = "HTTP"
   enable_cdn            = false
+  security_policy       = google_compute_security_policy.armor_waf_security_policy[0].id
 
   backend {
     group               = google_compute_region_network_endpoint_group.iap_run_sql_demo_neg[0].id
   }
 
   log_config {
-    enable              = false
+    enable              = true
   }
 
   iap {
@@ -445,7 +450,7 @@ resource "google_cloud_run_service" "iap_run_service" {
   template {
     spec {
       containers {
-        image   = "gcr.io/google-samples/hello-app:1.0"
+        image   = "us-central1-docker.pkg.dev/secops-project-348011/binauthz-demo-repo/iap-run-sql-demo@sha256:b8aa54d57d515d91e9524df4b99295e7946eb0a0015b8d7abf9af31b6664d741"
         ports {
           container_port = 8080
         }
@@ -535,10 +540,6 @@ resource "google_project_iam_member" "sql_client_policy" {
   member        = "serviceAccount:${google_service_account.run_sql_service_account[0].email}"
 }
 
-data "google_project" "project" {
-  project_id    = var.project  
-}
-
 #oauth2 client
 resource "google_iap_client" "iap_run_sql_demo_client" {
   count         = var.create_iap_run_sql_demo ? 1 : 0
@@ -553,6 +554,11 @@ resource "google_iap_web_backend_service_iam_member" "iap_run_sql_demo_member" {
   web_backend_service   = google_compute_backend_service.iap_run_sql_demo_backend[0].name
   role                  = "roles/iap.httpsResourceAccessor"
   member                = "user:${var.iap_user}"
+  condition {
+    expression          = "\"accessPolicies/${google_access_context_manager_access_policy.access_policy.name}/accessLevels/windows_encrypted\" in request.auth.access_levels"
+    title               = "beyondcorp_access_level"    
+    description         = "enforce beyondcorp access level windows_encrypted"
+  } 
 }
 
 # Allow IAP to invoke the cloud run service
@@ -569,4 +575,32 @@ resource "google_cloud_run_service_iam_member" "run_all_users" {
   location  = google_cloud_run_service.iap_run_service[0].location
   role      = "roles/run.invoker"
   member    = "serviceAccount:${google_project_service_identity.iap_sa[0].email}"
+}
+
+######################################
+## BeyondCorp with IAP-RUN_SQL Demo ##
+######################################
+
+data "google_project" "project" {
+  project_id    = var.project  
+}
+
+resource "google_access_context_manager_access_policy" "access_policy" {
+  parent = "organizations/${var.organization}"
+  title  = "Access Policy for IAP Demo"
+}
+
+resource "google_access_context_manager_access_level" "access-level" {
+  parent = "accessPolicies/${google_access_context_manager_access_policy.access_policy.name}"
+  name   = "accessPolicies/${google_access_context_manager_access_policy.access_policy.name}/accessLevels/windows_encrypted"
+  title  = "windows_encrypted"
+  basic {
+    conditions {
+      device_policy {
+        os_constraints {
+          os_type                   = "DESKTOP_WINDOWS"
+        }
+      }
+    }
+  }
 }

@@ -5,3 +5,4 @@ region="us-central1"
 iap_user="pensande@agarsand.altostrat.com"
 create_dev_gke_cluster = false
 create_iap_run_sql_demo = false
+recaptcha_site_key = "6LcGeukhAAAAAAfjGfl0YIEtMEoUIy2uq_QjhJBQ"
