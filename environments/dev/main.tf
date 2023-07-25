@@ -17,7 +17,7 @@ locals {
 }
 
 provider "google" {
-  project = "${var.project}"
+  project = var.project
 }
 
 module "vpc" {
@@ -639,3 +639,15 @@ resource "google_bigquery_dataset_iam_member" "dataset_iam_member" {
   role       = "roles/bigquery.dataEditor"
   member     = "${google_logging_project_sink.gke_security_posture_sink.writer_identity}"
 }
+
+####################
+## Cloud IDS Demo ##
+####################
+/*
+module "cloud_ids" {
+  source            = "../../modules/cloud_ids"
+  demo_project_id   = var.project
+  vpc_network       = module.vpc.id
+  subnetwork_region = var.region
+}
+*/
