@@ -647,7 +647,9 @@ resource "google_bigquery_dataset_iam_member" "dataset_iam_member" {
 module "cloud_ids" {
   source            = "../../modules/cloud_ids"
   demo_project_id   = var.project
-  vpc_network       = module.vpc.id
   subnetwork_region = var.region
+  vpc_network       = module.vpc.id
+  vpc_subnet        = module.vpc.subnet
+  vpc_subnet_ip     = module.vpc.subnet_ip
 }
 */
