@@ -698,7 +698,7 @@ resource "google_firebaserules_ruleset" "firestore" {
 # Releases the ruleset for the Firestore instance.
 resource "google_firebaserules_release" "firestore" {
   provider     = google-beta
-  name         = "cloud.firestore" # must be cloud.firestore
+  name         = "cloud.firestore.new" # must be cloud.firestore
   ruleset_name = google_firebaserules_ruleset.firestore.name
   project      = var.project
 
