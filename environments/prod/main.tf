@@ -1525,3 +1525,18 @@ resource "google_kms_crypto_key_iam_member" "cloud_hsm_key_operator" {
   role          = "roles/cloudkms.cryptoOperator"
   member        = "serviceAccount:${module.cloud_hsm_demo_cloud_function.sa-email}"
 }
+
+####################################
+## Cloud Identity MFA Status Demo ##
+####################################
+
+module "mfa_status_demo_cloud_function" {
+    source          = "../../modules/cloud_function"
+    project         = var.project
+    function-name   = "mfa-status"
+    function-desc   = "input customer identity, returns users not enrolled in 2SV"
+    entry-point     = "mfa_status"
+    env-vars        = {
+      CUSTOMER_ID   = var.customer_id
+    }
+}
