@@ -21,9 +21,11 @@ resource "google_cloudfunctions_function" "function" {
   name        = var.function-name
   description = var.function-desc
   runtime     = "python39"
-
+  
   source_archive_bucket = "${var.project}-source-code"
   source_archive_object = google_storage_bucket_object.cf_source_zip.name
+
+  docker_registry       =  "ARTIFACT_REGISTRY"
 
   trigger_http          = var.triggers == null ? true : null
   ingress_settings      = var.triggers == null ? "ALLOW_ALL" : "ALLOW_INTERNAL_ONLY" 
