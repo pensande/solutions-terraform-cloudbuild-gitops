@@ -764,9 +764,11 @@ resource "google_project_iam_member" "config_control_service_user" {
 module "primus_services" {
   source  = "../../modules/cc_setup"
   project = var.primus_project
+  region  = var.region
 }
 
 module "secundus_services" {
   source  = "../../modules/cc_setup"
   project = var.secundus_project
+  region  = var.region
 }
