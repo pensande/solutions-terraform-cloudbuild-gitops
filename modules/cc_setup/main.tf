@@ -9,22 +9,19 @@ resource "google_storage_bucket" "input_bucket" {
 
 # KMS resources
 resource "google_kms_key_ring" "encryption_keyring" {
-  name     = "${var.project}-sym-enc-kr"
-  location = var.region
+  project       = var.project
+  location      = var.region
+  name          = "${var.project}-sym-enc-kr"
 }
 
 resource "google_kms_crypto_key" "encryption_key" {
-  name     = "${var.project}-sym-enc-key"
-  key_ring = google_kms_key_ring.encryption_keyring.id
-  purpose  = "ENCRYPT_DECRYPT"
+  name          = "${var.project}-sym-enc-key"
+  key_ring      = google_kms_key_ring.encryption_keyring.id
+  purpose       = "ENCRYPT_DECRYPT"
 
   version_template {
     algorithm           = "GOOGLE_SYMMETRIC_ENCRYPTION"
     protection_level    = "SOFTWARE"
-  }
-
-  lifecycle {
-    prevent_destroy = true
   }
 }
 
