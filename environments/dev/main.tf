@@ -756,3 +756,17 @@ resource "google_project_iam_member" "config_control_service_user" {
   role          = "roles/serviceusage.serviceUsageConsumer"
   member        = "serviceAccount:service-${data.google_project.solution_demos_project.number}@gcp-sa-yakima.iam.gserviceaccount.com"
 }
+
+#############################
+## Confidential Space Demo ##
+#############################
+
+module "primus_services" {
+  source  = "../../modules/cc_setup"
+  project = var.primus_project
+}
+
+module "secundus_services" {
+  source  = "../../modules/cc_setup"
+  project = var.secundus_project
+}
