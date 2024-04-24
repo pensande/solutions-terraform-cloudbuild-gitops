@@ -15,7 +15,6 @@ resource "google_kms_key_ring" "encryption_keyring" {
 }
 
 resource "google_kms_crypto_key" "encryption_key" {
-  project       = var.project
   name          = "${var.project}-sym-enc-key"
   key_ring      = google_kms_key_ring.encryption_keyring.id
   purpose       = "ENCRYPT_DECRYPT"
