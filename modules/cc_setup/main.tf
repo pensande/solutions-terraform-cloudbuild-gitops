@@ -23,10 +23,6 @@ resource "google_kms_crypto_key" "encryption_key" {
     algorithm           = "GOOGLE_SYMMETRIC_ENCRYPTION"
     protection_level    = "SOFTWARE"
   }
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 data "google_kms_crypto_key_version" "encryption_key_version" {
