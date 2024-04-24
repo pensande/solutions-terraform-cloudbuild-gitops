@@ -832,7 +832,7 @@ resource "google_iam_workload_identity_pool_provider" "primus_pool_provider" {
   workload_identity_pool_provider_id = "${var.primus_project}-provider"
   display_name                       = "${var.primus_project}-provider"
   description                        = "Identity pool provider for confidential space demo"
-  attribute_condition                = "assertion.swname == 'CONFIDENTIAL_SPACE' && 'STABLE' in assertion.submods.confidential_space.support_attributes && assertion.submods.container.image_reference == 'us-docker.pkg.dev/${primus_project}/$PRIMUS_ARTIFACT_REPOSITORY/$WORKLOAD_IMAGE_NAME:$WORKLOAD_IMAGE_TAG' && '${google_service_account.workload_service_account.email}' in assertion.google_service_accounts"
+  attribute_condition                = "assertion.swname == 'CONFIDENTIAL_SPACE' && 'STABLE' in assertion.submods.confidential_space.support_attributes && assertion.submods.container.image_reference == 'us-docker.pkg.dev/${var.primus_project}/$PRIMUS_ARTIFACT_REPOSITORY/$WORKLOAD_IMAGE_NAME:$WORKLOAD_IMAGE_TAG' && '${google_service_account.workload_service_account.email}' in assertion.google_service_accounts"
   attribute_mapping                  = {
     "google.subject" = "assertion.sub"
   }
@@ -848,7 +848,7 @@ resource "google_iam_workload_identity_pool_provider" "secundus_pool_provider" {
   workload_identity_pool_provider_id = "${var.secundus_project}-provider"
   display_name                       = "${var.secundus_project}-provider"
   description                        = "Identity pool provider for confidential space demo"
-  attribute_condition                = "assertion.swname == 'CONFIDENTIAL_SPACE' && 'STABLE' in assertion.submods.confidential_space.support_attributes && assertion.submods.container.image_reference == 'us-docker.pkg.dev/${primus_project}/$PRIMUS_ARTIFACT_REPOSITORY/$WORKLOAD_IMAGE_NAME:$WORKLOAD_IMAGE_TAG' && '${google_service_account.workload_service_account.email}' in assertion.google_service_accounts"
+  attribute_condition                = "assertion.swname == 'CONFIDENTIAL_SPACE' && 'STABLE' in assertion.submods.confidential_space.support_attributes && assertion.submods.container.image_reference == 'us-docker.pkg.dev/${var.primus_project}/$PRIMUS_ARTIFACT_REPOSITORY/$WORKLOAD_IMAGE_NAME:$WORKLOAD_IMAGE_TAG' && '${google_service_account.workload_service_account.email}' in assertion.google_service_accounts"
   attribute_mapping                  = {
     "google.subject" = "assertion.sub"
   }
