@@ -58,6 +58,7 @@ data "google_project" "project" {
 }
 
 resource "google_iam_workload_identity_pool" "workload_identity_pool" {
+  provider                  = google-beta
   project                   = var.project
   workload_identity_pool_id = "${var.project}-pool"
   display_name              = "${var.project}-pool"
