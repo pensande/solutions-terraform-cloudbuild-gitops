@@ -6,3 +6,7 @@ variable "project" {
 variable "region" {
   type          = string
 }
+
+variable "file_name" {
+  type          = string
+}

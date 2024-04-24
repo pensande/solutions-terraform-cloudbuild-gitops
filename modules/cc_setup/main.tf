@@ -7,6 +7,18 @@ resource "google_storage_bucket" "input_bucket" {
   uniform_bucket_level_access = true
 }
 
+resource "google_kms_secret_ciphertext" "encrypted_file" {
+  provider      = google-beta
+  crypto_key    = google_kms_crypto_key.encryption_key.id
+  plaintext     = file("${path.module}/raw_files/${var.file_name}")
+}
+
+resource "google_storage_bucket_object" "encrypted_object" {
+  name          = "enc_${var.file_name}"
+  content       = google_kms_secret_ciphertext.encrypted_file.ciphertext
+  bucket        = google_storage_bucket.input_bucket.name
+}
+
 # KMS resources
 resource "google_kms_key_ring" "encryption_keyring" {
   project       = var.project
