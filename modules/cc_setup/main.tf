@@ -65,7 +65,7 @@ resource "google_iam_workload_identity_pool" "workload_identity_pool" {
   description               = "Identity pool for confidential space demo"
 }
 
-# IAM entry for the service account to use the service account of workload identity
+# IAM entry for the workload identity pool to use the project service account
 resource "google_service_account_iam_member" "workload_identity-role" {
   service_account_id = google_service_account.service_account.name
   role               = "roles/iam.workloadIdentityUser"

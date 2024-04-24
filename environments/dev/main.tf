@@ -772,3 +772,54 @@ module "secundus_services" {
   project = var.secundus_project
   region  = var.region
 }
+
+resource "google_storage_bucket" "result_bucket" {
+  project       = var.secundus_project
+  location      = var.region
+  name          = "${var.secundus_project}-result-bucket"
+  storage_class = "STANDARD"
+
+  uniform_bucket_level_access = true
+}
+
+# Workload Service Account for Secundus Bank
+resource "google_service_account" "workload_service_account" {
+  project       = var.secundus_project
+  account_id    = "cc-demo-workload-sa"
+  display_name  = "cc-demo-workload-sa"
+}
+
+# IAM entry for Workload Service Account to read data from Primus storage bucket
+resource "google_storage_bucket_iam_member" "read_primus_bucket" {
+  bucket  = "${module.primus_services.input_bucket}"
+  role    = "roles/storage.objectViewer"
+  member  = "serviceAccount:${google_service_account.workload_service_account.email}"
+}
+
+# IAM entry for Workload Service Account to read data from Secundus storage bucket
+resource "google_storage_bucket_iam_member" "read_secundus_bucket" {
+  bucket  = "${module.secundus_services.input_bucket}"
+  role    = "roles/storage.objectViewer"
+  member  = "serviceAccount:${google_service_account.workload_service_account.email}"
+}
+
+# IAM entry for Workload Service Account to write data to Secundus result bucket
+resource "google_storage_bucket_iam_member" "write_result_bucket" {
+  bucket  = google_storage_bucket.result_bucket.name
+  role    = "roles/storage.objectCreator"
+  member  = "serviceAccount:${google_service_account.workload_service_account.email}"
+}
+
+# IAM entry for Workload Service Account to write logs
+resource "google_project_iam_member" "log_writer" {
+  project = var.secundus_project
+  role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${google_service_account.workload_service_account.email}"
+}
+
+# IAM entry for Workload Service Account to generate an attestation token
+resource "google_project_iam_member" "cc_workload_user" {
+  project = var.secundus_project
+  role    = "roles/confidentialcomputing.workloadUser"
+  member  = "serviceAccount:${google_service_account.workload_service_account.email}"
+}
