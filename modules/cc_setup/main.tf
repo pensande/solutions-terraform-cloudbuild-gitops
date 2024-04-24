@@ -41,6 +41,7 @@ resource "google_service_account" "service_account" {
 
 # Artifact Registry repo
 resource "google_artifact_registry_repository" "artifact-repo" {
+  provider      = google-beta
   project       = var.project
   location      = var.region
   repository_id = "${var.project}-repo"
