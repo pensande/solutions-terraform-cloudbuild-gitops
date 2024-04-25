@@ -4,16 +4,16 @@
 
 PRIMUS_PROJECT_ID=primus-bank-421307
 SECUNDUS_PROJECT_ID=secundus-bank-421307
-PRIMUS_PROJECT_REPOSITORY_REGION=us-central1
+REGION=us-central1
 
 PARENT_DIR=$(dirname ${PWD})
 PRIMUS_PROJECT_NUMBER=$(gcloud projects describe ${PRIMUS_PROJECT_ID} --format="value(projectNumber)")
 SECUNDUS_PROJECT_NUMBER=$(gcloud projects describe ${SECUNDUS_PROJECT_ID} --format="value(projectNumber)")
-IMAGE_REFERENCE=${PRIMUS_PROJECT_REPOSITORY_REGION}-docker.pkg.dev/${PRIMUS_PROJECT_ID}/${PRIMUS_PROJECT_ID}-repo/workload-container:latest
+IMAGE_REFERENCE=${REGION}-docker.pkg.dev/${PRIMUS_PROJECT_ID}/${PRIMUS_PROJECT_ID}-repo/workload-container:latest
 
 gcloud config set project ${PRIMUS_PROJECT_ID}
 
-gcloud auth configure-docker ${PRIMUS_PROJECT_REPOSITORY_REGION}-docker.pkg.dev
+gcloud auth configure-docker ${REGION}-docker.pkg.dev
 
 echo "Updating workload code with required resource names ..."
 ./generate_workload_code.sh
@@ -25,6 +25,8 @@ sed -i'' "s/PRIMUS_SERVICE_ACCOUNT/${PRIMUS_PROJECT_ID}-sa/" ${PARENT_DIR}/src/w
 sed -i'' "s/PRIMUS_WORKLOAD_IDENTITY_POOL/${PRIMUS_PROJECT_ID}-pool/" ${PARENT_DIR}/src/workload.go
 sed -i'' "s/PRIMUS_WIP_PROVIDER/${PRIMUS_PROJECT_ID}-provider/" ${PARENT_DIR}/src/workload.go
 sed -i'' "s/PRIMUS_PROJECT_NUMBER/${PRIMUS_PROJECT_NUMBER}/" ${PARENT_DIR}/src/workload.go
+
+sed -i'' "s/global\/keyRings/${REGION}\/keyRings/" ${PARENT_DIR}/src/workload.go
 
 sed -i'' "s/SECUNDUS_INPUT_STORAGE_BUCKET/${SECUNDUS_PROJECT_ID}-input-bucket/" ${PARENT_DIR}/src/workload.go
 sed -i'' "s/SECUNDUS_PROJECT_ID/${SECUNDUS_PROJECT_ID}/" ${PARENT_DIR}/src/workload.go

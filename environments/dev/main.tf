@@ -885,13 +885,6 @@ module "secundus_vpc" {
   }
 }
 
-module "secundus_cloud_nat" {
-  source  = "../../modules/cloud_nat"
-  project = var.secundus_project
-  region  = var.region
-  network = module.secundus_vpc.name
-}
-
 resource "google_org_policy_policy" "disable_trusted_image_projects" {
   name   = "projects/${var.secundus_project}/policies/compute.trustedImageProjects"
   parent = "projects/${var.secundus_project}"
