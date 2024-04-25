@@ -875,6 +875,14 @@ module "secundus_vpc" {
   project = var.secundus_project
   region  = var.region
   env     = "cc-demo-workload"
+  secondary_ranges  = {
+    "cc-demo-workload-subnet-01" = [
+        {
+            range_name      = "random"
+            ip_cidr_range   = "10.224.0.0/14"
+        }
+    ]
+  }
 }
 
 module "secundus_cloud_nat" {
