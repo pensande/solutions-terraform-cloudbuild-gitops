@@ -828,6 +828,7 @@ resource "google_project_iam_member" "cc_workload_user" {
 
 # IAM entry for Workload Service Account to read from the Primus Artifact Registry
 resource "google_artifact_registry_repository_iam_member" "primus_ar_reader" {
+  provider    = google-beta
   project     = var.primus_project
   location    = var.region
   repository  = "${module.primus_services.repo_name}"
