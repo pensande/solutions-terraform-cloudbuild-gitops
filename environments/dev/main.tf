@@ -828,6 +828,7 @@ resource "google_project_iam_member" "cc_workload_user" {
 
 resource "google_iam_workload_identity_pool_provider" "primus_pool_provider" {
   provider                           = google-beta
+  project =                          = var.primus_project
   workload_identity_pool_id          = "${module.primus_services.pool_id}"
   workload_identity_pool_provider_id = "${var.primus_project}-provider"
   display_name                       = "${var.primus_project}-provider"
@@ -844,6 +845,7 @@ resource "google_iam_workload_identity_pool_provider" "primus_pool_provider" {
 
 resource "google_iam_workload_identity_pool_provider" "secundus_pool_provider" {
   provider                           = google-beta
+  project =                          = var.secundus_project
   workload_identity_pool_id          = "${module.secundus_services.pool_id}"
   workload_identity_pool_provider_id = "${var.secundus_project}-provider"
   display_name                       = "${var.secundus_project}-provider"
