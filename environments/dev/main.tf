@@ -892,6 +892,22 @@ module "secundus_cloud_nat" {
   network = module.secundus_vpc.name
 }
 
+resource "google_org_policy_policy" "disable_trusted_image_projects" {
+  name   = "projects/${var.secundus_project}/policies/compute.trustedImageProjects"
+  parent = "projects/${var.secundus_project}"
+
+  spec {
+    inherit_from_parent = false
+    reset               = true
+  }
+}
+
+# wait after disabling org policy
+resource "time_sleep" "wait_disable_trusted_image_projects" {
+  depends_on       = [google_org_policy_policy.disable_trusted_image_projects]
+  create_duration  = "30s"
+}
+
 resource "google_compute_instance" "first_workload_cvm" {
   project                   = var.secundus_project
   name                      = "first-workload-cvm"
@@ -936,4 +952,6 @@ resource "google_compute_instance" "first_workload_cvm" {
     tee-restart-policy  = "Never"
     tee-cmd             = "[\"count-location\",\"Seattle\",\"gs://${google_storage_bucket.result_bucket.name}/seattle-result\"]"
   }
+
+  depends_on = [time_sleep.wait_disable_trusted_image_projects]
 }
