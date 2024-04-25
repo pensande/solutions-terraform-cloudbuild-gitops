@@ -918,7 +918,6 @@ resource "google_compute_instance" "first_workload_cvm" {
     auto_delete = true
     initialize_params {
       image = "confidential-space-images/confidential-space"
-      size  = 10
     }
   }
 
