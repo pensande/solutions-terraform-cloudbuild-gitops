@@ -762,15 +762,17 @@ resource "google_project_iam_member" "config_control_service_user" {
 #############################
 
 module "primus_services" {
-  source  = "../../modules/cc_setup"
-  project = var.primus_project
-  region  = var.region
+  source    = "../../modules/cc_setup"
+  project   = var.primus_project
+  region    = var.region
+  file_name = "primus_customer_list.csv"
 }
 
 module "secundus_services" {
-  source  = "../../modules/cc_setup"
-  project = var.secundus_project
-  region  = var.region
+  source    = "../../modules/cc_setup"
+  project   = var.secundus_project
+  region    = var.region
+  file_name = "secundus_customer_list.csv"
 }
 
 resource "google_storage_bucket" "result_bucket" {
@@ -822,4 +824,36 @@ resource "google_project_iam_member" "cc_workload_user" {
   project = var.secundus_project
   role    = "roles/confidentialcomputing.workloadUser"
   member  = "serviceAccount:${google_service_account.workload_service_account.email}"
+}
+
+resource "google_iam_workload_identity_pool_provider" "primus_pool_provider" {
+  provider                           = google-beta
+  workload_identity_pool_id          = "${module.primus_services.pool_id}"
+  workload_identity_pool_provider_id = "${var.primus_project}-provider"
+  display_name                       = "${var.primus_project}-provider"
+  description                        = "Identity pool provider for confidential space demo"
+  attribute_condition                = "assertion.swname == 'CONFIDENTIAL_SPACE' && 'STABLE' in assertion.submods.confidential_space.support_attributes && assertion.submods.container.image_reference == 'us-docker.pkg.dev/${var.primus_project}/$PRIMUS_ARTIFACT_REPOSITORY/$WORKLOAD_IMAGE_NAME:$WORKLOAD_IMAGE_TAG' && '${google_service_account.workload_service_account.email}' in assertion.google_service_accounts"
+  attribute_mapping                  = {
+    "google.subject" = "assertion.sub"
+  }
+  oidc {
+    allowed_audiences = ["https://sts.googleapis.com"]
+    issuer_uri        = "https://confidentialcomputing.googleapis.com/"
+  }
+}
+
+resource "google_iam_workload_identity_pool_provider" "secundus_pool_provider" {
+  provider                           = google-beta
+  workload_identity_pool_id          = "${module.secundus_services.pool_id}"
+  workload_identity_pool_provider_id = "${var.secundus_project}-provider"
+  display_name                       = "${var.secundus_project}-provider"
+  description                        = "Identity pool provider for confidential space demo"
+  attribute_condition                = "assertion.swname == 'CONFIDENTIAL_SPACE' && 'STABLE' in assertion.submods.confidential_space.support_attributes && assertion.submods.container.image_reference == 'us-docker.pkg.dev/${var.primus_project}/$PRIMUS_ARTIFACT_REPOSITORY/$WORKLOAD_IMAGE_NAME:$WORKLOAD_IMAGE_TAG' && '${google_service_account.workload_service_account.email}' in assertion.google_service_accounts"
+  attribute_mapping                  = {
+    "google.subject" = "assertion.sub"
+  }
+  oidc {
+    allowed_audiences = ["https://sts.googleapis.com"]
+    issuer_uri        = "https://confidentialcomputing.googleapis.com/"
+  }
 }
