@@ -869,3 +869,65 @@ resource "google_iam_workload_identity_pool_provider" "secundus_pool_provider" {
     issuer_uri        = "https://confidentialcomputing.googleapis.com/"
   }
 }
+
+module "secundus_vpc" {
+  source  = "../../modules/vpc"
+  project = var.secundus_project
+  region  = var.region
+  env     = "cc-demo-workload"
+}
+
+module "secundus_cloud_nat" {
+  source  = "../../modules/cloud_nat"
+  project = var.secundus_project
+  region  = var.region
+  network = module.secundus_vpc.name
+}
+
+resource "google_compute_instance" "first_workload_cvm" {
+  project                   = var.secundus_project
+  name                      = "first-workload-cvm"
+  machine_type              = "n2d-standard-2"
+  zone                      = "${var.region}-a"
+  
+  allow_stopping_for_update = true
+
+  shielded_instance_config {
+    enable_integrity_monitoring = true
+    enable_secure_boot          = true
+    enable_vtpm                 = true
+  }
+
+  confidential_instance_config {
+    enable_confidential_compute = true
+  }
+
+  scheduling {
+    on_host_maintenance = "TERMINATE"
+  }
+
+  boot_disk {
+    auto_delete = true
+    initialize_params {
+      image = "confidential-space-images/confidential-space"
+      size  = 10
+    }
+  }
+
+  network_interface {
+    network    = module.secundus_vpc.name
+    subnetwork = module.secundus_vpc.subnet
+    access_config {}
+  }
+
+  service_account {
+    email  = google_service_account.workload_service_account.email
+    scopes = ["cloud-platform"]
+  }
+  
+  metadata = {
+    tee-image-reference = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/workload-container:latest"
+    tee-restart-policy  = "Never"
+    tee-cmd             = "[\"count-location\",\"Seattle\",\"gs://${google_storage_bucket.result_bucket.name}/seattle-result\"]"
+  }
+}
