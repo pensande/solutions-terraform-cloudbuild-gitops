@@ -15,7 +15,7 @@ resource "google_kms_secret_ciphertext" "encrypted_file" {
 
 resource "google_storage_bucket_object" "encrypted_object" {
   name          = "enc_${var.file_name}"
-  content       = google_kms_secret_ciphertext.encrypted_file.ciphertext
+  content       = base64decode(google_kms_secret_ciphertext.encrypted_file.ciphertext)
   bucket        = google_storage_bucket.input_bucket.name
 }
 
