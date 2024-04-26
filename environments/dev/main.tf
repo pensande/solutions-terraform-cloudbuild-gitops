@@ -837,7 +837,7 @@ resource "google_artifact_registry_repository_iam_member" "primus_ar_reader" {
 }
 
 # IAM entry for pensande user to write to the Primus Artifact Registry repo
-resource "google_artifact_registry_repository_iam_member" "primus_ar_reader" {
+resource "google_artifact_registry_repository_iam_member" "primus_ar_writer" {
   provider    = google-beta
   project     = var.primus_project
   location    = var.region
