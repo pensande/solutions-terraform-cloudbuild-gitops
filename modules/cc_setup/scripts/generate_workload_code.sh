@@ -14,15 +14,16 @@ package main
 import (
   "bytes"
   "context"
-	"errors"
+  "errors"
   "encoding/csv"
   "fmt"
   "hash/crc32"
   "os"
   "regexp"
   "strings"
-
+  "encoding/base64"
   "flag"
+  "io/ioutil"
 
   kmspb "cloud.google.com/go/kms/apiv1/kmspb"
   "github.com/google/logger"
@@ -37,13 +38,13 @@ import (
 
 const (
 	primusBucketName                   = "PRIMUS_INPUT_STORAGE_BUCKET"
-	primusDataPath                     = "primus_enc_customer_list.csv"
+	primusDataPath                     = "enc_primus_customer_list.csv"
 	primusKeyName                      = "projects/PRIMUS_PROJECT_ID/locations/global/keyRings/PRIMUS_ENC_KEYRING/cryptoKeys/PRIMUS_ENC_KEY"
 	primusWIPProviderName              = "projects/PRIMUS_PROJECT_NUMBER/locations/global/workloadIdentityPools/PRIMUS_WORKLOAD_IDENTITY_POOL/providers/PRIMUS_WIP_PROVIDER"
 	primusKeyAccessServiceAccountEmail = "PRIMUS_SERVICE_ACCOUNT@PRIMUS_PROJECT_ID.iam.gserviceaccount.com"
 
 	secundusBucketName                   = "SECUNDUS_INPUT_STORAGE_BUCKET"
-	secundusDataPath                     = "secundus_enc_customer_list.csv"
+	secundusDataPath                     = "enc_secundus_customer_list.csv"
 	secundusKeyName                      = "projects/SECUNDUS_PROJECT_ID/locations/global/keyRings/SECUNDUS_ENC_KEYRING/cryptoKeys/SECUNDUS_ENC_KEY"
 	secundusWIPProviderName              = "projects/SECUNDUS_PROJECT_NUMBER/locations/global/workloadIdentityPools/SECUNDUS_WORKLOAD_IDENTITY_POOL/providers/SECUNDUS_WIP_PROVIDER"
 	secundusKeyAccessServiceAccountEmail = "SECUNDUS_SERVICE_ACCOUNT@SECUNDUS_PROJECT_ID.iam.gserviceaccount.com"
@@ -110,11 +111,14 @@ func readInTable(ctx context.Context, tableInfo tableInput) ([][]string, error) 
 		return nil, fmt.Errorf("could not read in gs://%v/%v: %w", tableInfo.BucketName, tableInfo.DataPath, err)
 	}
 	defer objectReader.Close()
-	encryptedData := make([]byte, objectReader.Attrs.Size)
-	bytesRead, err := objectReader.Read(encryptedData)
-	if int64(bytesRead) != objectReader.Attrs.Size || err != nil {
+    encodedData, err := ioutil.ReadAll(objectReader)
+	if err != nil {
 		return nil, fmt.Errorf("could not read in gs://%v/%v: %w", tableInfo.BucketName, tableInfo.DataPath, err)
 	}
+    encryptedData, err := base64.StdEncoding.DecodeString(string(encodedData))
+    if err != nil {
+        return nil, fmt.Errorf("could not decode gs://%v/%v: %w", tableInfo.BucketName, tableInfo.DataPath, err)
+    }
 	decryptedData, err := decryptFile(ctx, tableInfo.KeyName, tableInfo.KeyAccessServiceAccountEmail, tableInfo.WIPProviderName, encryptedData)
 	if err != nil {
 		return nil, fmt.Errorf("could not decrypt gs://%v/%v: %w", tableInfo.BucketName, tableInfo.DataPath, err)
