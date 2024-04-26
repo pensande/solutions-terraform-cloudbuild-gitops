@@ -826,7 +826,7 @@ resource "google_project_iam_member" "cc_workload_user" {
   member  = "serviceAccount:${google_service_account.workload_service_account.email}"
 }
 
-# IAM entry for Workload Service Account to read from the Primus Artifact Registry
+# IAM entry for Workload Service Account to read from the Primus Artifact Registry repo
 resource "google_artifact_registry_repository_iam_member" "primus_ar_reader" {
   provider    = google-beta
   project     = var.primus_project
@@ -836,11 +836,14 @@ resource "google_artifact_registry_repository_iam_member" "primus_ar_reader" {
   member      = "serviceAccount:${google_service_account.workload_service_account.email}"
 }
 
-resource "null_resource" "create_cc_demo_container_image" {
-  provisioner "local-exec" {
-    working_dir = "${path.module}/../../modules/cc_setup/scripts/"
-    command     = "chmod +x *.sh; /bin/sh create_workload.sh"
-  }
+# IAM entry for pensande user to write to the Primus Artifact Registry repo
+resource "google_artifact_registry_repository_iam_member" "primus_ar_reader" {
+  provider    = google-beta
+  project     = var.primus_project
+  location    = var.region
+  repository  = "${module.primus_services.repo_name}"
+  role        = "roles/artifactregistry.writer"
+  member      = "user:${var.iap_user}"
 }
 
 resource "google_iam_workload_identity_pool_provider" "primus_pool_provider" {
