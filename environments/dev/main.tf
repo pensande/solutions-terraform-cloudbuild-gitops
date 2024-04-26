@@ -756,3 +756,256 @@ resource "google_project_iam_member" "config_control_service_user" {
   role          = "roles/serviceusage.serviceUsageConsumer"
   member        = "serviceAccount:service-${data.google_project.solution_demos_project.number}@gcp-sa-yakima.iam.gserviceaccount.com"
 }
+
+#############################
+## Confidential Space Demo ##
+#############################
+
+module "primus_services" {
+  source    = "../../modules/cc_setup"
+  project   = var.primus_project
+  region    = var.region
+  file_name = "primus_customer_list.csv"
+}
+
+module "secundus_services" {
+  source    = "../../modules/cc_setup"
+  project   = var.secundus_project
+  region    = var.region
+  file_name = "secundus_customer_list.csv"
+}
+
+resource "google_storage_bucket" "result_bucket" {
+  project       = var.secundus_project
+  location      = var.region
+  name          = "${var.secundus_project}-result-bucket"
+  storage_class = "STANDARD"
+
+  uniform_bucket_level_access = true
+}
+
+# Workload Service Account for Secundus Bank
+resource "google_service_account" "workload_service_account" {
+  project       = var.secundus_project
+  account_id    = "cc-demo-workload-sa"
+  display_name  = "cc-demo-workload-sa"
+}
+
+# IAM entry for Workload Service Account to read data from Primus storage bucket
+resource "google_storage_bucket_iam_member" "read_primus_bucket" {
+  bucket  = "${module.primus_services.input_bucket}"
+  role    = "roles/storage.objectViewer"
+  member  = "serviceAccount:${google_service_account.workload_service_account.email}"
+}
+
+# IAM entry for Workload Service Account to read data from Secundus storage bucket
+resource "google_storage_bucket_iam_member" "read_secundus_bucket" {
+  bucket  = "${module.secundus_services.input_bucket}"
+  role    = "roles/storage.objectViewer"
+  member  = "serviceAccount:${google_service_account.workload_service_account.email}"
+}
+
+# IAM entry for Workload Service Account to write data to Secundus result bucket
+resource "google_storage_bucket_iam_member" "write_result_bucket" {
+  bucket  = google_storage_bucket.result_bucket.name
+  role    = "roles/storage.objectCreator"
+  member  = "serviceAccount:${google_service_account.workload_service_account.email}"
+}
+
+# IAM entry for Workload Service Account to write logs
+resource "google_project_iam_member" "log_writer" {
+  project = var.secundus_project
+  role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${google_service_account.workload_service_account.email}"
+}
+
+# IAM entry for Workload Service Account to generate an attestation token
+resource "google_project_iam_member" "cc_workload_user" {
+  project = var.secundus_project
+  role    = "roles/confidentialcomputing.workloadUser"
+  member  = "serviceAccount:${google_service_account.workload_service_account.email}"
+}
+
+# IAM entry for Workload Service Account to read from the Primus Artifact Registry repo
+resource "google_artifact_registry_repository_iam_member" "primus_ar_reader" {
+  provider    = google-beta
+  project     = var.primus_project
+  location    = var.region
+  repository  = "${module.primus_services.repo_name}"
+  role        = "roles/artifactregistry.reader"
+  member      = "serviceAccount:${google_service_account.workload_service_account.email}"
+}
+
+# IAM entry for pensande user to write to the Primus Artifact Registry repo
+resource "google_artifact_registry_repository_iam_member" "primus_ar_writer" {
+  provider    = google-beta
+  project     = var.primus_project
+  location    = var.region
+  repository  = "${module.primus_services.repo_name}"
+  role        = "roles/artifactregistry.writer"
+  member      = "user:${var.iap_user}"
+}
+
+resource "google_iam_workload_identity_pool_provider" "primus_pool_provider" {
+  provider                           = google-beta
+  project                            = var.primus_project
+  workload_identity_pool_id          = "${module.primus_services.pool_id}"
+  workload_identity_pool_provider_id = "${var.primus_project}-provider"
+  display_name                       = "${var.primus_project}-provider"
+  description                        = "Identity pool provider for confidential space demo"
+  attribute_condition                = "assertion.swname == 'CONFIDENTIAL_SPACE' && 'STABLE' in assertion.submods.confidential_space.support_attributes && assertion.submods.container.image_reference == '${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/workload-container:latest' && '${google_service_account.workload_service_account.email}' in assertion.google_service_accounts"
+  attribute_mapping                  = {
+    "google.subject" = "assertion.sub"
+  }
+  oidc {
+    allowed_audiences = ["https://sts.googleapis.com"]
+    issuer_uri        = "https://confidentialcomputing.googleapis.com/"
+  }
+}
+
+resource "google_iam_workload_identity_pool_provider" "secundus_pool_provider" {
+  provider                           = google-beta
+  project                            = var.secundus_project
+  workload_identity_pool_id          = "${module.secundus_services.pool_id}"
+  workload_identity_pool_provider_id = "${var.secundus_project}-provider"
+  display_name                       = "${var.secundus_project}-provider"
+  description                        = "Identity pool provider for confidential space demo"
+  attribute_condition                = "assertion.swname == 'CONFIDENTIAL_SPACE' && 'STABLE' in assertion.submods.confidential_space.support_attributes && assertion.submods.container.image_digest == '${var.cc_image_digest}' && assertion.submods.container.image_reference == '${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/workload-container:latest' && '${google_service_account.workload_service_account.email}' in assertion.google_service_accounts"
+  attribute_mapping                  = {
+    "google.subject" = "assertion.sub"
+  }
+  oidc {
+    allowed_audiences = ["https://sts.googleapis.com"]
+    issuer_uri        = "https://confidentialcomputing.googleapis.com/"
+  }
+}
+
+module "secundus_vpc" {
+  source  = "../../modules/vpc"
+  project = var.secundus_project
+  region  = var.region
+  env     = "cc-demo-workload"
+  secondary_ranges  = {
+    "cc-demo-workload-subnet-01" = [
+        {
+            range_name      = "random"
+            ip_cidr_range   = "10.224.0.0/14"
+        }
+    ]
+  }
+}
+
+# disable org policy to create VMs using confidential space image
+resource "google_org_policy_policy" "disable_trusted_image_projects" {
+  name   = "projects/${var.secundus_project}/policies/compute.trustedImageProjects"
+  parent = "projects/${var.secundus_project}"
+
+  spec {
+    inherit_from_parent = false
+    reset               = true
+  }
+}
+
+# wait after disabling org policy
+resource "time_sleep" "wait_disable_trusted_image_projects" {
+  depends_on       = [google_org_policy_policy.disable_trusted_image_projects]
+  create_duration  = "30s"
+}
+
+resource "google_compute_instance" "first_workload_cvm" {
+  count                     = var.create_cc_demo ? 1 : 0
+  project                   = var.secundus_project
+  name                      = "first-workload-cvm"
+  machine_type              = "n2d-standard-2"
+  zone                      = "${var.region}-a"
+  
+  allow_stopping_for_update = true
+
+  shielded_instance_config {
+    enable_integrity_monitoring = true
+    enable_secure_boot          = true
+    enable_vtpm                 = true
+  }
+
+  confidential_instance_config {
+    enable_confidential_compute = true
+  }
+
+  scheduling {
+    on_host_maintenance = "TERMINATE"
+  }
+
+  boot_disk {
+    auto_delete = true
+    initialize_params {
+      image = "confidential-space-images/confidential-space"
+    }
+  }
+
+  network_interface {
+    network    = module.secundus_vpc.name
+    subnetwork = module.secundus_vpc.subnet
+  }
+
+  service_account {
+    email  = google_service_account.workload_service_account.email
+    scopes = ["cloud-platform"]
+  }
+  
+  metadata = {
+    tee-image-reference = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/workload-container:latest"
+    tee-restart-policy  = "Never"
+    tee-cmd             = "[\"count-location\",\"Seattle\",\"gs://${google_storage_bucket.result_bucket.name}/seattle-result\"]"
+  }
+
+  depends_on = [time_sleep.wait_disable_trusted_image_projects]
+}
+
+resource "google_compute_instance" "second_workload_cvm" {
+  count                     = var.create_cc_demo ? 1 : 0
+  project                   = var.secundus_project
+  name                      = "second-workload-cvm"
+  machine_type              = "n2d-standard-2"
+  zone                      = "${var.region}-a"
+  
+  allow_stopping_for_update = true
+
+  shielded_instance_config {
+    enable_integrity_monitoring = true
+    enable_secure_boot          = true
+    enable_vtpm                 = true
+  }
+
+  confidential_instance_config {
+    enable_confidential_compute = true
+  }
+
+  scheduling {
+    on_host_maintenance = "TERMINATE"
+  }
+
+  boot_disk {
+    auto_delete = true
+    initialize_params {
+      image = "confidential-space-images/confidential-space"
+    }
+  }
+
+  network_interface {
+    network    = module.secundus_vpc.name
+    subnetwork = module.secundus_vpc.subnet
+  }
+
+  service_account {
+    email  = google_service_account.workload_service_account.email
+    scopes = ["cloud-platform"]
+  }
+  
+  metadata = {
+    tee-image-reference = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/workload-container:latest"
+    tee-restart-policy  = "Never"
+    tee-cmd             = "[\"list-common-customers\",\"gs://${google_storage_bucket.result_bucket.name}/list-common-result\"]"
+  }
+
+  depends_on = [time_sleep.wait_disable_trusted_image_projects]
+}

@@ -54,7 +54,28 @@ variable "create_ids_demo" {
   default       = false
 }
 
+variable "create_cc_demo" {
+  description   = "If set to true, it will create the confidential space demo"
+  type          = bool
+  default       = false
+}
+
+variable "primus_project" {
+  type          = string
+  description   = "Google Cloud Project ID for Primus Bank"
+}
+
+variable "secundus_project" {
+  type          = string
+  description   = "Google Cloud Project ID for Secundus Bank"
+}
+
 variable "recaptcha_site_key" {
   type          = string
   description   = "reCAPTCHA site key for Armor WAF Policy"
+}
+
+variable "cc_image_digest" {
+  type          = string
+  description   = "Image Digest of the confidential space demo container"
 }
