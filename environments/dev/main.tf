@@ -860,7 +860,7 @@ resource "google_iam_workload_identity_pool_provider" "secundus_pool_provider" {
   workload_identity_pool_provider_id = "${var.secundus_project}-provider"
   display_name                       = "${var.secundus_project}-provider"
   description                        = "Identity pool provider for confidential space demo"
-  attribute_condition                = "assertion.swname == 'CONFIDENTIAL_SPACE' && 'STABLE' in assertion.submods.confidential_space.support_attributes && assertion.submods.container.image_digest == ${var.cc_image_digest} && assertion.submods.container.image_reference == '${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/workload-container:latest' && '${google_service_account.workload_service_account.email}' in assertion.google_service_accounts"
+  attribute_condition                = "assertion.swname == 'CONFIDENTIAL_SPACE' && 'STABLE' in assertion.submods.confidential_space.support_attributes && assertion.submods.container.image_digest == '${var.cc_image_digest}' && assertion.submods.container.image_reference == '${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/workload-container:latest' && '${google_service_account.workload_service_account.email}' in assertion.google_service_accounts"
   attribute_mapping                  = {
     "google.subject" = "assertion.sub"
   }
