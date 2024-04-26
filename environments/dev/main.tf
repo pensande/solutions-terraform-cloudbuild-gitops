@@ -836,6 +836,13 @@ resource "google_artifact_registry_repository_iam_member" "primus_ar_reader" {
   member      = "serviceAccount:${google_service_account.workload_service_account.email}"
 }
 
+resource "null_resource" "create_cc_demo_container_image" {
+  provisioner "local-exec" {
+    command     = "chmod +x ${path.cwd}/../../modules/cc_setup/scripts/create_workload.sh; chmod +x ${path.cwd}/../../modules/cc_setup/scripts/generate_workload_code.sh; ${path.cwd}/../../modules/cc_setup/scripts/create_workload.sh"
+    interpreter = ["bash", "-c"]
+  }
+}
+
 resource "google_iam_workload_identity_pool_provider" "primus_pool_provider" {
   provider                           = google-beta
   project                            = var.primus_project
