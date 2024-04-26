@@ -74,3 +74,8 @@ variable "recaptcha_site_key" {
   type          = string
   description   = "reCAPTCHA site key for Armor WAF Policy"
 }
+
+variable "cc_image_digest" {
+  type          = string
+  description   = "Image Digest of the confidential space demo container"
+}

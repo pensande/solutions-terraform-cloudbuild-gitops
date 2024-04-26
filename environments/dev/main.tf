@@ -860,7 +860,7 @@ resource "google_iam_workload_identity_pool_provider" "secundus_pool_provider" {
   workload_identity_pool_provider_id = "${var.secundus_project}-provider"
   display_name                       = "${var.secundus_project}-provider"
   description                        = "Identity pool provider for confidential space demo"
-  attribute_condition                = "assertion.swname == 'CONFIDENTIAL_SPACE' && 'STABLE' in assertion.submods.confidential_space.support_attributes && assertion.submods.container.image_reference == '${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/workload-container:latest' && '${google_service_account.workload_service_account.email}' in assertion.google_service_accounts"
+  attribute_condition                = "assertion.swname == 'CONFIDENTIAL_SPACE' && 'STABLE' in assertion.submods.confidential_space.support_attributes && assertion.submods.container.image_digest == ${var.cc_image_digest} && assertion.submods.container.image_reference == '${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/workload-container:latest' && '${google_service_account.workload_service_account.email}' in assertion.google_service_accounts"
   attribute_mapping                  = {
     "google.subject" = "assertion.sub"
   }
@@ -885,6 +885,7 @@ module "secundus_vpc" {
   }
 }
 
+# disable org policy to create VMs using confidential space image
 resource "google_org_policy_policy" "disable_trusted_image_projects" {
   name   = "projects/${var.secundus_project}/policies/compute.trustedImageProjects"
   parent = "projects/${var.secundus_project}"
@@ -902,6 +903,7 @@ resource "time_sleep" "wait_disable_trusted_image_projects" {
 }
 
 resource "google_compute_instance" "first_workload_cvm" {
+  count                     = var.create_cc_demo ? 1 : 0
   project                   = var.secundus_project
   name                      = "first-workload-cvm"
   machine_type              = "n2d-standard-2"
@@ -944,6 +946,55 @@ resource "google_compute_instance" "first_workload_cvm" {
     tee-image-reference = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/workload-container:latest"
     tee-restart-policy  = "Never"
     tee-cmd             = "[\"count-location\",\"Seattle\",\"gs://${google_storage_bucket.result_bucket.name}/seattle-result\"]"
+  }
+
+  depends_on = [time_sleep.wait_disable_trusted_image_projects]
+}
+
+resource "google_compute_instance" "second_workload_cvm" {
+  count                     = var.create_cc_demo ? 1 : 0
+  project                   = var.secundus_project
+  name                      = "first-workload-cvm"
+  machine_type              = "n2d-standard-2"
+  zone                      = "${var.region}-a"
+  
+  allow_stopping_for_update = true
+
+  shielded_instance_config {
+    enable_integrity_monitoring = true
+    enable_secure_boot          = true
+    enable_vtpm                 = true
+  }
+
+  confidential_instance_config {
+    enable_confidential_compute = true
+  }
+
+  scheduling {
+    on_host_maintenance = "TERMINATE"
+  }
+
+  boot_disk {
+    auto_delete = true
+    initialize_params {
+      image = "confidential-space-images/confidential-space"
+    }
+  }
+
+  network_interface {
+    network    = module.secundus_vpc.name
+    subnetwork = module.secundus_vpc.subnet
+  }
+
+  service_account {
+    email  = google_service_account.workload_service_account.email
+    scopes = ["cloud-platform"]
+  }
+  
+  metadata = {
+    tee-image-reference = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/workload-container:latest"
+    tee-restart-policy  = "Never"
+    tee-cmd             = "[\"list-common-customers\",\"gs://${google_storage_bucket.result_bucket.name}/list-common-result\"]"
   }
 
   depends_on = [time_sleep.wait_disable_trusted_image_projects]
