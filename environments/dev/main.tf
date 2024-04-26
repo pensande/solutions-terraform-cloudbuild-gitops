@@ -838,7 +838,8 @@ resource "google_artifact_registry_repository_iam_member" "primus_ar_reader" {
 
 resource "null_resource" "create_cc_demo_container_image" {
   provisioner "local-exec" {
-    command     = "chmod +x ${path.cwd}/../../modules/cc_setup/scripts/create_workload.sh; chmod +x ${path.cwd}/../../modules/cc_setup/scripts/generate_workload_code.sh; ${path.cwd}/../../modules/cc_setup/scripts/create_workload.sh"
+    working_dir = "${path.cwd}/../../modules/cc_setup/scripts/"
+    command     = "chmod +x *.sh; ./create_workload.sh"
     interpreter = ["bash", "-c"]
   }
 }
