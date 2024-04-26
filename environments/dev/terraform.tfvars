@@ -10,3 +10,4 @@ create_cc_demo = true
 primus_project = "primus-bank-421307"
 secundus_project = "secundus-bank-421307"
 recaptcha_site_key = "6LcGeukhAAAAAAfjGfl0YIEtMEoUIy2uq_QjhJBQ"
+cc_image_digest = "sha256:4f2bad47b61fd05ccd628c9567971cb29f7cfaa8d2ca9aeae94e638ce2f0023d"
