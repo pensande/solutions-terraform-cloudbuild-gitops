@@ -954,7 +954,7 @@ resource "google_compute_instance" "first_workload_cvm" {
 resource "google_compute_instance" "second_workload_cvm" {
   count                     = var.create_cc_demo ? 1 : 0
   project                   = var.secundus_project
-  name                      = "first-workload-cvm"
+  name                      = "second-workload-cvm"
   machine_type              = "n2d-standard-2"
   zone                      = "${var.region}-a"
   
