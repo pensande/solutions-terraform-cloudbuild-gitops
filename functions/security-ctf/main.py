@@ -26,12 +26,13 @@ def security_ctf(request):
             url = urllib.parse.unquote(payload.split("response_url=")[1].split("&")[0])
             requestor_name = payload.split("user_name=")[1].split("&")[0]
             requestor_id = payload.split("user_id=")[1].split("&")[0]
+            channel_id = payload.split("channel_id=")[1].split("&")[0]
             request_text = urllib.parse.unquote(payload.split("text=")[1].split("&")[0])
             print(f"New CTF Request: {requestor_id}, {requestor_name}, {request_text}")
             
             input_text = request_text.split("+")
             if input_text[0].lower() == 'admin':
-                if requestor_id == slack_admin:
+                if channel_id == slack_ctf_admin_channel:
                     slack_ack(url, "Hey, _CTF commando_, access is being provisioned!")
                     print(f"Provisioning access to env: {input_text[1]} for: {input_text[2]} as requested by: {requestor_name}")
                     http_endpoint = f"https://{deployment_region}-{deployment_project}.cloudfunctions.net/security-ctf-admin"
