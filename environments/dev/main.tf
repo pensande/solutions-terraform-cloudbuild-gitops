@@ -1015,34 +1015,36 @@ resource "google_compute_instance" "second_workload_cvm" {
 #####################################
 
 resource "google_securityposture_posture" "vertex_ai_posture" {
-    posture_id  = "vertex_ai_posture"
-    parent      = "organizations/${var.organization}"
-    location    = "global"
-    state       = "ACTIVE"
-    description = "security posture demo for vertex ai"
-    policy_sets {
-        policy_set_id = "org_policy_set"
-        description   = "set of org policies"
-        policies {
-            policy_id = "policy_1"
-            constraint {
-                org_policy_constraint {
-                    canned_constraint_id = "storage.uniformBucketLevelAccess"
-                    policy_rules {
-                        enforce = true
-                    }
-                }
-            }
+  provider      = google-beta
+  posture_id  = "vertex_ai_posture"
+  parent      = "organizations/${var.organization}"
+  location    = "global"
+  state       = "ACTIVE"
+  description = "security posture demo for vertex ai"
+  policy_sets {
+    policy_set_id = "org_policy_set"
+    description   = "set of org policies"
+    policies {
+      policy_id = "policy_1"
+      constraint {
+        org_policy_constraint {
+          canned_constraint_id = "storage.uniformBucketLevelAccess"
+          policy_rules {
+              enforce = true
+          }
         }
+      }
     }
+  }
 }
 
 resource "google_securityposture_posture_deployment" "vertexai_posture_deployment" {
-    posture_deployment_id = "vertexai_posture_deployment"
-    parent                = "organizations/${var.organization}"
-    location              = "global"
-    description           = "vertex ai security posture deployment"
-    target_resource       = "projects/${var.project}"
-    posture_id            = google_securityposture_posture.vertex_ai_posture.name
-    posture_revision_id   = google_securityposture_posture.vertex_ai_posture.revision_id
+  provider              = google-beta
+  posture_deployment_id = "vertexai_posture_deployment"
+  parent                = "organizations/${var.organization}"
+  location              = "global"
+  description           = "vertex ai security posture deployment"
+  target_resource       = "projects/${var.project}"
+  posture_id            = google_securityposture_posture.vertex_ai_posture.name
+  posture_revision_id   = google_securityposture_posture.vertex_ai_posture.revision_id
 }
