@@ -1013,7 +1013,7 @@ resource "google_compute_instance" "second_workload_cvm" {
 #####################################
 ## Vertex AI Security Posture Demo ##
 #####################################
-
+/*
 resource "google_securityposture_posture" "vertex_ai_posture" {
   provider      = google-beta
   posture_id  = "vertex_ai_posture"
@@ -1048,3 +1048,4 @@ resource "google_securityposture_posture_deployment" "vertexai_posture_deploymen
   posture_id            = google_securityposture_posture.vertex_ai_posture.name
   posture_revision_id   = google_securityposture_posture.vertex_ai_posture.revision_id
 }
+*/
