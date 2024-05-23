@@ -70,11 +70,6 @@ variable "secundus_project" {
   description   = "Google Cloud Project ID for Secundus Bank"
 }
 
-variable "deception_project" {
-  type          = string
-  description   = "Google Cloud Project ID for Active Defense"
-}
-
 variable "recaptcha_site_key" {
   type          = string
   description   = "reCAPTCHA site key for Armor WAF Policy"
