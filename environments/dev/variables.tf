@@ -70,6 +70,11 @@ variable "secundus_project" {
   description   = "Google Cloud Project ID for Secundus Bank"
 }
 
+variable "deception_project" {
+  type          = string
+  description   = "Google Cloud Project ID for Active Defense"
+}
+
 variable "recaptcha_site_key" {
   type          = string
   description   = "reCAPTCHA site key for Armor WAF Policy"
@@ -78,4 +83,81 @@ variable "recaptcha_site_key" {
 variable "cc_image_digest" {
   type          = string
   description   = "Image Digest of the confidential space demo container"
+}
+
+data "google_project" "project" {}
+
+variable "adc_url_hash" {
+  description = "adc_url_hash"
+}
+
+variable "adc_ip_address" {
+   description = "ADC IP adress"
+   type = string
+}
+variable "adc_lb_address" {
+   description = "adc lb address"
+   type = string
+}
+variable "image_project" {
+   description = "Image Project i.e adc project"
+   type = string
+}
+variable "sensor_version" {
+   description = "enter sensor version {5-4-0-32}"
+   type = string
+}
+
+variable "zonename" {
+   description = "zone gcp"
+   type = string
+}
+
+variable "session_id" {
+   description = "unique uuid "
+   type = string
+}
+
+variable "deception_project" {
+   description = "Deception project"
+   type = string
+}
+
+variable "is_shared_vpc" {
+   description = "VPC is shared then host project will be diff"
+   type = bool
+}
+
+variable "host_project" {
+   description = "Host project will be same if non-shared vpc"
+   type = string
+}
+
+variable "vpc" {
+   description = "VPC NAME"
+   type = string
+}
+
+variable "subnet_name" {
+   description = "sensor subnet"
+   type = string
+}
+
+variable "subnet_region" {
+   description = "subnet region"
+   type = string
+}
+
+variable "source_ranges" {
+   description  = "Source IP ranges list"
+   default = ["10.0.0.0/8", "172.16.0.0/12" , "192.168.0.0/16"]
+}
+
+variable "configure_cscc"{
+    type   = bool
+    default = true
+}
+
+variable "dep_service_account" { 
+    type = string
 }
