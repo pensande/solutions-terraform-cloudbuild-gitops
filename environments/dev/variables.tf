@@ -85,8 +85,6 @@ variable "cc_image_digest" {
   description   = "Image Digest of the confidential space demo container"
 }
 
-data "google_project" "project" {}
-
 variable "adc_url_hash" {
   description = "adc_url_hash"
 }
