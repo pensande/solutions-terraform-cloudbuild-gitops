@@ -18,7 +18,7 @@ locals {
   scc_config = jsonencode(   
 		{
 			"name" : "scc",
-			"organization_id" : var.org_id, 
+			"organization_id" : var.organization, 
 	    "source_id": local.source_id,
 			"source_name" : "Acalvio Shadowplex-${random_string.depname.result}"
 		}
