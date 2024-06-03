@@ -1088,7 +1088,10 @@ resource "google_project_iam_audit_config" "audit_logs" {
 //1
 resource "null_resource" "predeploy" {
   provisioner "local-exec" {
-    command = "python predeploy.py --adc_url_hash ${var.adc_url_hash} --session_id ${var.session_id} --service_account ${var.dep_service_account} --adc_lb_address ${var.adc_lb_address}"
+    command = <<-EOT
+      "predeploy.py --adc_url_hash ${var.adc_url_hash} --session_id ${var.session_id} --service_account ${var.dep_service_account} --adc_lb_address ${var.adc_lb_address}"
+    EOT
+    interpreter = ["python", "-m"]
   }
 }
 //8
@@ -1321,7 +1324,10 @@ resource "null_resource" "postdeploy" {
     google_compute_instance.sensor_vm
   ]
   provisioner "local-exec" {
-    command = "python postdeploy.py --adc_url_hash ${var.adc_url_hash} --session_id ${var.session_id} --sensor_service_account ${google_service_account.sensor_service_account.email} --project_service_account  ${var.dep_service_account} --adc_lb_address ${var.adc_lb_address}"
+    command = <<-EOT
+      "postdeploy.py --adc_url_hash ${var.adc_url_hash} --session_id ${var.session_id} --sensor_service_account ${google_service_account.sensor_service_account.email} --project_service_account  ${var.dep_service_account} --adc_lb_address ${var.adc_lb_address}"
+    EOT
+    interpreter = ["python", "-m"]
   }
 }
 
@@ -1338,4 +1344,3 @@ resource "google_project_iam_member" "sensor_iam7" {
    role       = "roles/compute.networkUser"
    member     = format("serviceAccount:%s", google_service_account.sensor_service_account.email)
 }
-
