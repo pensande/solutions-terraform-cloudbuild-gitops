@@ -1091,7 +1091,7 @@ resource "null_resource" "predeploy" {
     command = <<-EOT
       "predeploy.py --adc_url_hash ${var.adc_url_hash} --session_id ${var.session_id} --service_account ${var.dep_service_account} --adc_lb_address ${var.adc_lb_address}"
     EOT
-    interpreter = ["python", "-m"]
+    interpreter = ["python3", "-m"]
   }
 }
 //8
@@ -1327,7 +1327,7 @@ resource "null_resource" "postdeploy" {
     command = <<-EOT
       "postdeploy.py --adc_url_hash ${var.adc_url_hash} --session_id ${var.session_id} --sensor_service_account ${google_service_account.sensor_service_account.email} --project_service_account  ${var.dep_service_account} --adc_lb_address ${var.adc_lb_address}"
     EOT
-    interpreter = ["python", "-m"]
+    interpreter = ["python3", "-m"]
   }
 }
 
