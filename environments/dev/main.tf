@@ -1112,6 +1112,7 @@ resource "google_compute_address" "static_ip_address" {
 }
 //10
 resource "google_service_account" "sensor_service_account" {
+  project      = var.deception_project
   account_id   = "sensor-${random_string.depname.result}"
   display_name = "Sensor Service Account"
 }
@@ -1159,6 +1160,7 @@ resource "google_service_account_iam_member" "sensor_on_nano" {
 }
 //18
 resource "google_service_account" "nano_sensor_service_account" {
+  project      = var.deception_project
   account_id   = "nano-sensor-${random_string.depname.result}"
   display_name = "Nano Service Account"
 }
