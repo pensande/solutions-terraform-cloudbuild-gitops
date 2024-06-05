@@ -1086,6 +1086,7 @@ resource "google_project_iam_audit_config" "audit_logs" {
   }
 }
 //1
+/*
 resource "null_resource" "predeploy" {
   provisioner "local-exec" {
     command = <<-EOT
@@ -1094,6 +1095,7 @@ resource "null_resource" "predeploy" {
     interpreter = ["python3", "-m"]
   }
 }
+*/
 //8
 resource "random_string" "depname" {
   depends_on = [
@@ -1319,6 +1321,7 @@ resource "google_compute_instance" "sensor_vm" {
   }
 }
 //24
+/*
 resource "null_resource" "postdeploy" {
   depends_on = [
     google_compute_instance.sensor_vm
@@ -1330,7 +1333,7 @@ resource "null_resource" "postdeploy" {
     interpreter = ["python3", "-m"]
   }
 }
-
+*/
 resource "google_scc_source" "custom_source" {
    count   = var.configure_cscc ? 1 : 0
    display_name = "Acalvio ShadowPlex-${random_string.depname.result}"
