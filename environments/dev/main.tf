@@ -1285,9 +1285,24 @@ resource "google_org_policy_policy" "disable_shielded_vm" {
   }
 }
 
+resource "google_org_policy_policy" "update_trusted_projects" {
+  name   = "projects/${var.deception_project}/policies/compute.trustedImageProjects"
+  parent = "projects/${var.deception_project}"
+
+  spec {
+    inherit_from_parent = true
+
+    rules {
+      values {
+        allowed_values = ["projects/${var.image_project}"]
+      }
+    }
+  }
+}
+
 # wait after disabling org policies
 resource "time_sleep" "wait_disable_org_policies" {
-  depends_on       = [google_org_policy_policy.disable_shielded_vm]
+  depends_on       = [google_org_policy_policy.disable_shielded_vm, google_org_policy_policy.update_trusted_projects]
   create_duration  = "60s"
 }
 
