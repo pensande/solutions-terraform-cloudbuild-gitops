@@ -1086,16 +1086,14 @@ resource "google_project_iam_audit_config" "audit_logs" {
   }
 }
 //1
-/*
 resource "null_resource" "predeploy" {
-  provisioner "local-exec" {
+  /*provisioner "local-exec" {
     command = <<-EOT
       "predeploy.py --adc_url_hash ${var.adc_url_hash} --session_id ${var.session_id} --service_account ${var.dep_service_account} --adc_lb_address ${var.adc_lb_address}"
     EOT
     interpreter = ["python3", "-m"]
-  }
+  }*/
 }
-*/
 //8
 resource "random_string" "depname" {
   depends_on = [
@@ -1321,19 +1319,18 @@ resource "google_compute_instance" "sensor_vm" {
   }
 }
 //24
-/*
 resource "null_resource" "postdeploy" {
   depends_on = [
     google_compute_instance.sensor_vm
   ]
-  provisioner "local-exec" {
+  /*provisioner "local-exec" {
     command = <<-EOT
       "postdeploy.py --adc_url_hash ${var.adc_url_hash} --session_id ${var.session_id} --sensor_service_account ${google_service_account.sensor_service_account.email} --project_service_account  ${var.dep_service_account} --adc_lb_address ${var.adc_lb_address}"
     EOT
     interpreter = ["python3", "-m"]
-  }
+  }*/
 }
-*/
+
 resource "google_scc_source" "custom_source" {
    count   = var.configure_cscc ? 1 : 0
    display_name = "Acalvio ShadowPlex-${random_string.depname.result}"
