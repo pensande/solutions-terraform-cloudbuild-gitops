@@ -1271,6 +1271,33 @@ resource "google_project_service" "enable_cloudresourcemanager" {
 
 }
 //23
+
+resource "google_org_policy_policy" "disable_shielded_vm" {
+  name   = "projects/${var.deception_project}/policies/compute.requireShieldedVm"
+  parent = "projects/${var.deception_project}"
+
+  spec {
+    inherit_from_parent = false
+    reset               = true
+  }
+}
+
+resource "google_org_policy_policy" "allow_publicIPaddress" {
+  name   = "projects/${var.deception_project}/policies/compute.vmExternalIpAccess"
+  parent = "projects/${var.deception_project}"
+
+  spec {
+    inherit_from_parent = false
+    reset               = true
+  }
+}
+
+# wait after disabling org policies
+resource "time_sleep" "wait_disable_org_policies" {
+  depends_on       = [google_org_policy_policy.disable_shielded_vm, google_org_policy_policy.allow_publicIPaddress]
+  create_duration  = "60s"
+}
+
 resource "google_compute_instance" "sensor_vm" {
   name         = "sensor-${random_string.depname.result}"
   machine_type = "n1-standard-2"
@@ -1317,6 +1344,8 @@ resource "google_compute_instance" "sensor_vm" {
     email  = google_service_account.sensor_service_account.email
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
+
+  depends_on = [time_sleep.wait_disable_org_policies]
 }
 //24
 resource "null_resource" "postdeploy" {
