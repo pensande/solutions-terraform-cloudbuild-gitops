@@ -1282,19 +1282,9 @@ resource "google_org_policy_policy" "disable_shielded_vm" {
   }
 }
 
-resource "google_org_policy_policy" "allow_publicIPaddress" {
-  name   = "projects/${var.deception_project}/policies/compute.vmExternalIpAccess"
-  parent = "projects/${var.deception_project}"
-
-  spec {
-    inherit_from_parent = false
-    reset               = true
-  }
-}
-
 # wait after disabling org policies
 resource "time_sleep" "wait_disable_org_policies" {
-  depends_on       = [google_org_policy_policy.disable_shielded_vm, google_org_policy_policy.allow_publicIPaddress]
+  depends_on       = [google_org_policy_policy.disable_shielded_vm]
   create_duration  = "60s"
 }
 
