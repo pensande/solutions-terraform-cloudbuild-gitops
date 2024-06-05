@@ -1292,6 +1292,7 @@ resource "google_compute_instance" "sensor_vm" {
   name         = "sensor-${random_string.depname.result}"
   machine_type = "n1-standard-2"
   zone         = var.zonename
+  project      = var.deception_project
 
   metadata = {
     "sensor_config" = jsonencode(
@@ -1351,15 +1352,15 @@ resource "null_resource" "postdeploy" {
 }
 
 resource "google_scc_source" "custom_source" {
-   count   = var.configure_cscc ? 1 : 0
+   count        = var.configure_cscc ? 1 : 0
    display_name = "Acalvio ShadowPlex-${random_string.depname.result}"
    organization = var.organization
    description  = "My custom Cloud Security Command Center Finding Source"
  }
 
 resource "google_project_iam_member" "sensor_iam7" {
-   count   = var.is_shared_vpc ? 1 : 0
-   project = var.host_project
+   count      = var.is_shared_vpc ? 1 : 0
+   project    = var.host_project
    role       = "roles/compute.networkUser"
    member     = format("serviceAccount:%s", google_service_account.sensor_service_account.email)
 }
