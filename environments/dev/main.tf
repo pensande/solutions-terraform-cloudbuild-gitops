@@ -1294,7 +1294,7 @@ resource "google_org_policy_policy" "update_trusted_projects" {
 
     rules {
       values {
-        allowed_values = ["projects/${image_project}"]
+        allowed_values = ["projects/${var.image_project}"]
       }
     }
   }
