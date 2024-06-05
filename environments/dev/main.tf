@@ -1291,11 +1291,11 @@ resource "google_org_policy_policy" "update_trusted_projects" {
 
   spec {
     inherit_from_parent = true
-  }
 
-  rules {
-    values {
-      allowed_values = ["projects/${image_project}"]
+    rules {
+      values {
+        allowed_values = ["projects/${image_project}"]
+      }
     }
   }
 }
