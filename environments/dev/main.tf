@@ -1106,8 +1106,9 @@ resource "random_string" "depname" {
 }
 //9
 resource "google_compute_address" "static_ip_address" {
-  name = "sensor-${random_string.depname.result}-addr"
-  region = var.subnet_region
+  project = var.deception_project
+  name    = "sensor-${random_string.depname.result}-addr"
+  region  = var.subnet_region
 }
 //10
 resource "google_service_account" "sensor_service_account" {
