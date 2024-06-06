@@ -1314,22 +1314,22 @@ resource "google_compute_instance" "sensor_vm" {
 
   metadata = {
     "sensor_config" = jsonencode(
-        {
-            "adc_ip_address" = var.adc_ip_address //local
-            "adc_lb_address" = var.adc_lb_address //local
-            "spa_server" = var.adc_lb_address //local
-            "sensor_type" = "vpc"
-            "sensor_svc_acct" = google_service_account.sensor_service_account.email
-            "nano_svc_acct" = google_service_account.nano_sensor_service_account.email
-            "deception_project" =  var.deception_project//input
-            "host_project" = var.host_project//input
-            "image_project" = var.image_project//local
-            "service_projects" = [var.host_project,]
-            "vpc_name" = var.vpc //input
-            "nano_sensor_image_name" = "nano-sensor-${var.sensor_version}"
-        }
+      {
+          "adc_ip_address" = var.adc_ip_address //local
+          "adc_lb_address" = var.adc_lb_address //local
+          "spa_server" = var.adc_lb_address //local
+          "sensor_type" = "vpc"
+          "sensor_svc_acct" = google_service_account.sensor_service_account.email
+          "nano_svc_acct" = google_service_account.nano_sensor_service_account.email
+          "deception_project" =  var.deception_project//input
+          "host_project" = var.host_project//input
+          "image_project" = var.image_project//local
+          "service_projects" = [var.host_project,]
+          "vpc_name" = var.vpc //input
+          "nano_sensor_image_name" = "nano-sensor-${var.sensor_version}"
+      }
     )
-	"scc_config" = var.configure_cscc ? local.scc_config : local.null_scc_config
+	  "scc_config" = var.configure_cscc ? local.scc_config : local.null_scc_config
   }
   
   boot_disk {
