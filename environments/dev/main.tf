@@ -1388,7 +1388,7 @@ resource "google_project_iam_member" "sensor_iam7" {
 ######################################################
 
 module "vpcsc_logging" {
-  source                          = "./modules/logging"
+  source                          = "../../modules/logging"
   org_id                          = var.organization
   project_id                      = var.project
   log_bucket_name                 = var.vpcsc_log_bucket
@@ -1398,7 +1398,7 @@ module "vpcsc_logging" {
 
 module "vpcsc_dashboard" {
   count                 = var.add_vpcsc_dashboard ? 1 : 0
-  source                = "./modules/vpcsc_dashboard"
+  source                = "../../modules/vpcsc_dashboard"
   depends_on            = [module.vpcsc_logging]
   project_id            = var.project
   log_based_metric_name = var.vpcsc_log_based_metric
@@ -1406,7 +1406,7 @@ module "vpcsc_dashboard" {
 
 module "vpcsc_alerting" {
   count                 = var.add_vpcsc_alerting ? 1 : 0
-  source                = "./modules/vpcsc_alerting"
+  source                = "../../modules/vpcsc_alerting"
   depends_on            = [module.vpcsc_logging]
   project_id            = var.project
   email_address         = var.vpcsc_email_address
