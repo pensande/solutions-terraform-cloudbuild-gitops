@@ -55,11 +55,11 @@ resource "google_monitoring_alert_policy" "vpcsc_denials_enforced" {
   alert_strategy {
     auto_close = "86400s" # 1 day
   }
-  severity = "WARNING"
+  # severity = "WARNING"
   documentation {
     content   = "Please check the violations for enforced perimeters in project $${metric.labels.projectId}."
     mime_type = "text/markdown"
-    subject   = "Enforced VPC SC violations in project $${metric.labels.projectId}"
+    # subject   = "Enforced VPC SC violations in project $${metric.labels.projectId}"
   }
   depends_on = [google_monitoring_notification_channel.email]
 }
@@ -91,11 +91,11 @@ resource "google_monitoring_alert_policy" "vpcsc_denials_dry_run" {
   alert_strategy {
     auto_close = "86400s" # 1 day
   }
-  severity = "WARNING"
+  # severity = "WARNING"
   documentation {
     content   = "Please check the violations for dry run perimeters in project $${metric.labels.projectId}."
     mime_type = "text/markdown"
-    subject   = "Dry run VPC SC violations in project $${metric.labels.projectId}"
+    # subject   = "Dry run VPC SC violations in project $${metric.labels.projectId}"
   }
   depends_on = [google_monitoring_notification_channel.email]
 }
