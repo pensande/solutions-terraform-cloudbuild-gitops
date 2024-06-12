@@ -1388,7 +1388,7 @@ resource "google_project_iam_member" "sensor_iam7" {
 ######################################################
 
 module "vpcsc_logging" {
-  source                          = "../../modules/logging"
+  source                          = "../../modules/vpcsc_logging"
   org_id                          = var.organization
   project_id                      = var.project
   log_bucket_name                 = var.vpcsc_log_bucket
