@@ -154,3 +154,38 @@ variable "configure_cscc"{
 variable "dep_service_account" { 
     type = string
 }
+
+variable "add_vpcsc_dashboard" {
+  type        = bool
+  description = "Boolean to determine whether or not the dashboard module should be deployed"
+  default     = false
+}
+
+variable "add_vpcsc_alerting" {
+  type        = bool
+  description = "Boolean to determine whether or not the alerting module should be deployed"
+  default     = false
+}
+
+variable "vpcsc_log_bucket" {
+  type        = string
+  description = "Name of the log bucket"
+  default     = "vpcsc_denials"
+}
+
+variable "vpcsc_log_based_metric" {
+  type        = string
+  description = "Name of the log-based metric"
+  default     = "vpcsc_denials"
+}
+
+variable "vpcsc_log_router_aggregated_sink" {
+  type        = string
+  description = "Name of the log router aggregated sink for the organization"
+  default     = "vpcsc_denials"
+}
+
+variable "vpcsc_email_address" {
+  type        = string
+  description = "Email address to receive notifications from alerting"
+}
