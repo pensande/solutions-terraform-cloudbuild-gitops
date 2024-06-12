@@ -35,6 +35,7 @@ resource "google_logging_project_bucket_config" "vpcsc_denials" {
 
 resource "google_logging_metric" "vpcsc_denials" {
   provider    = google-beta
+  project     = var.project_id
   name        = var.log_based_metric_name
   filter      = <<EOT
   resource.type="audited_resource"
