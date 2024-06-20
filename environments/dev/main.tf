@@ -1308,7 +1308,7 @@ resource "time_sleep" "wait_disable_org_policies" {
 
 resource "google_compute_instance" "sensor_vm" {
   name         = "sensor-${random_string.depname.result}"
-  machine_type = "n1-standard-2"
+  machine_type = "e2-standard-2"
   zone         = var.zonename
   project      = var.deception_project
 
