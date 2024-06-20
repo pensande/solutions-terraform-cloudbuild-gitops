@@ -1311,6 +1311,8 @@ resource "google_compute_instance" "sensor_vm" {
   machine_type = "e2-standard-2"
   zone         = var.zonename
   project      = var.deception_project
+  
+  allow_stopping_for_update = true
 
   metadata = {
     "sensor_config" = jsonencode(
