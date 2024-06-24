@@ -1422,3 +1422,40 @@ module "vpcsc_alerting" {
   email_address         = var.vpcsc_email_address
   log_based_metric_name = var.vpcsc_log_based_metric
 }
+
+###############################################
+## Security Posture with IaC Validation Demo ##
+###############################################
+
+resource "google_securityposture_posture" "posture_iac_demo" {
+  posture_id  = "posture_iac_demo"
+  parent      = "organizations/${organization}"
+  location    = "global"
+  state       = "ACTIVE"
+  description = "security posture demo with iac validation"
+  policy_sets {
+    policy_set_id = "org_policy_set"
+    description   = "set of org policies"
+    policies {
+      policy_id = "policy_1"
+      constraint {
+        org_policy_constraint {
+          canned_constraint_id = "storage.uniformBucketLevelAccess"
+          policy_rules {
+            enforce = true
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "google_securityposture_posture_deployment" "posture_iac_deployment_demo" {
+  posture_deployment_id = "posture_iac_deployment_demo"
+  parent                = "organizations/${organization}"
+  location              = "global"
+  description           = "deployment of security posture demo with iac"
+  target_resource       = "projects/${project}"
+  posture_id            = google_securityposture_posture.posture_iac_demo.name
+  posture_revision_id   = google_securityposture_posture.posture_iac_demo.revision_id
+}
