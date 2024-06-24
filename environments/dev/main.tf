@@ -600,19 +600,27 @@ resource "google_access_context_manager_access_policy" "access_policy" {
   title  = "Access Policy for IAP Demo"
 }
 
-resource "google_access_context_manager_access_level" "access-level" {
+resource "google_access_context_manager_access_level" "access_level" {
   parent = "accessPolicies/${google_access_context_manager_access_policy.access_policy.name}"
-  name   = "accessPolicies/${google_access_context_manager_access_policy.access_policy.name}/accessLevels/windows_encrypted"
-  title  = "windows_encrypted"
+  name   = "accessPolicies/${google_access_context_manager_access_policy.access_policy.name}/accessLevels/india"
+  title  = "india_region"
   basic {
     conditions {
-      device_policy {
-        os_constraints {
-          os_type                   = "DESKTOP_WINDOWS"
-        }
-      }
+      regions = [
+        "IN",
+      ]
     }
   }
+
+  lifecycle {
+    ignore_changes = [basic.0.conditions]
+  }
+}
+
+resource "google_access_context_manager_access_level_condition" "access_level_conditions" {
+  access_level = google_access_context_manager_access_level.access_level.name
+  ip_subnetworks = ["192.0.4.0/24"]
+  negate = false
 }
 
 #################################################
