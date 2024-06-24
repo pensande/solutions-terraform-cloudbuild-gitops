@@ -99,6 +99,7 @@ steps:
         gcloud scc iac-validation-reports create \
         organizations/118518422342/locations/global --tf-plan-file=plan.json \
         --format="json(response.iacValidationReport)" > IaCScanReport_$BUILD_ID.json
+        gcloud storage cp IaCScanReport_$BUILD_ID.json gs://iac-scan-results
       fi 
 # [END tf-scan]
 
