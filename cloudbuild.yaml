@@ -57,7 +57,7 @@ steps:
   - | 
       if [ -d "environments/$BRANCH_NAME/" ]; then
         cd environments/$BRANCH_NAME
-        terraform plan
+        terraform plan -out tf.plan
       else
         for dir in environments/*/
         do 
@@ -73,6 +73,35 @@ steps:
         done
       fi 
 # [END tf-plan]
+
+# [START tf-show]
+- id: 'tf show'
+  name: 'hashicorp/terraform:1.0.0'
+  entrypoint: 'sh'
+  args: 
+  - '-c'
+  - | 
+      if [ -d "environments/$BRANCH_NAME/" ]; then
+        cd environments/$BRANCH_NAME
+        terraform show -json tf.plan > plan.json
+      fi 
+# [END tf-show]
+
+# [START tf-scan]
+- id: 'tf scan'
+  name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: '/bin/bash'
+  args: 
+  - '-c'
+  - > 
+      if [ -d "environments/$BRANCH_NAME/" ]; then
+        cd environments/$BRANCH_NAME
+        gcloud scc iac-validation-reports create \
+        organizations/118518422342/locations/global --tf-plan-file=plan.json \
+        --format="json(response.iacValidationReport)" >
+        IaCScanReport_$BUILD_ID.json
+      fi 
+# [END tf-scan]
 
 # [START tf-apply]
 - id: 'tf apply'
