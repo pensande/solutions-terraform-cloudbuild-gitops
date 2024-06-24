@@ -98,8 +98,7 @@ steps:
         cd environments/$BRANCH_NAME
         gcloud scc iac-validation-reports create \
         organizations/118518422342/locations/global --tf-plan-file=plan.json \
-        --format="json(response.iacValidationReport)" >
-        IaCScanReport_$BUILD_ID.json
+        --format="json(response.iacValidationReport)" > IaCScanReport_$BUILD_ID.json
       fi 
 # [END tf-scan]
 
