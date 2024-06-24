@@ -1428,6 +1428,7 @@ module "vpcsc_alerting" {
 ###############################################
 
 resource "google_securityposture_posture" "posture_iac_demo" {
+  provider    = google-beta
   posture_id  = "posture_iac_demo"
   parent      = "organizations/${organization}"
   location    = "global"
@@ -1451,6 +1452,7 @@ resource "google_securityposture_posture" "posture_iac_demo" {
 }
 
 resource "google_securityposture_posture_deployment" "posture_iac_deployment_demo" {
+  provider              = google-beta
   posture_deployment_id = "posture_iac_deployment_demo"
   parent                = "organizations/${organization}"
   location              = "global"
