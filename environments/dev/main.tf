@@ -565,9 +565,9 @@ resource "google_iap_web_backend_service_iam_member" "iap_run_sql_demo_member" {
   role                  = "roles/iap.httpsResourceAccessor"
   member                = "user:${var.iap_user}"
   condition {
-    expression          = "\"accessPolicies/${google_access_context_manager_access_policy.access_policy.name}/accessLevels/windows_encrypted\" in request.auth.access_levels"
+    expression          = "\"accessPolicies/${google_access_context_manager_access_policy.access_policy.name}/accessLevels/india\" in request.auth.access_levels"
     title               = "beyondcorp_access_level"    
-    description         = "enforce beyondcorp access level windows_encrypted"
+    description         = "enforce beyondcorp access level india_region ip_range"
   } 
 }
 
@@ -1431,7 +1431,7 @@ module "vpcsc_alerting" {
 
 resource "google_securityposture_posture" "posture_iac_demo" {
   posture_id  = "posture_iac_demo"
-  parent      = "organizations/${organization}"
+  parent      = "organizations/${var.organization}"
   location    = "global"
   state       = "ACTIVE"
   description = "security posture demo with iac validation"
@@ -1454,7 +1454,7 @@ resource "google_securityposture_posture" "posture_iac_demo" {
 
 resource "google_securityposture_posture_deployment" "posture_iac_deployment_demo" {
   posture_deployment_id = "posture_iac_deployment_demo"
-  parent                = "organizations/${organization}"
+  parent                = "organizations/${var.organization}"
   location              = "global"
   description           = "deployment of security posture demo with iac"
   target_resource       = "projects/${project}"
