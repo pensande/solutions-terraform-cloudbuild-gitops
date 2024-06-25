@@ -1468,7 +1468,7 @@ resource "google_compute_network" "posture_iac_demo_network"{
   delete_default_routes_on_create = false
   auto_create_subnetworks         = false
   routing_mode                    = "REGIONAL"
-  mtu                             = 100
+  mtu                             = 1000
   project                         = var.project
 }
 
@@ -1476,7 +1476,7 @@ resource "google_container_node_pool" "posture_iac_demo_node_pool" {
   name               = "acme-node-pool"
   cluster            = "acme-cluster"
   project            = var.project
-  initial_node_count = 2
+  initial_node_count = 3
 
   node_config {
     preemptible  = true
@@ -1491,10 +1491,10 @@ resource "google_storage_bucket" "posture_iac_demo_bucket" {
 
   project = var.project
 
-  uniform_bucket_level_access = false
+  uniform_bucket_level_access = true
 
-  #logging {
-  #  log_bucket   = "my-unique-logging-bucket" // Create a separate bucket for logs
-  #  log_object_prefix = "tf-logs/"             // Optional prefix for better structure
-  #}
+  logging {
+    log_bucket   = "my-unique-logging-bucket" // Create a separate bucket for logs
+    log_object_prefix = "tf-logs/"             // Optional prefix for better structure
+  }
 }
