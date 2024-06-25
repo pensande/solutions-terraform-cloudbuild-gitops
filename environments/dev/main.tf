@@ -600,6 +600,7 @@ resource "google_access_context_manager_access_policy" "access_policy" {
   title  = "Access Policy for IAP Demo"
 }
 
+/* commenting out for IaC Scan demo 
 resource "google_access_context_manager_access_level" "access_level" {
   parent = "accessPolicies/${google_access_context_manager_access_policy.access_policy.name}"
   name   = "accessPolicies/${google_access_context_manager_access_policy.access_policy.name}/accessLevels/india"
@@ -622,7 +623,7 @@ resource "google_access_context_manager_access_level_condition" "access_level_co
   ip_subnetworks = ["192.0.4.0/24"]
   negate = false
 }
-
+*/
 #################################################
 ## GKE Security Posture Dashboard with BQ Demo ##
 #################################################
