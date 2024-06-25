@@ -1462,13 +1462,13 @@ resource "google_securityposture_posture_deployment" "posture_iac_demo_deploymen
   posture_id            = google_securityposture_posture.posture_iac_demo.name
   posture_revision_id   = google_securityposture_posture.posture_iac_demo.revision_id
 }
-*/
+
 resource "google_compute_network" "posture_iac_demo_network"{
   name                            = "acme-network"
   delete_default_routes_on_create = false
   auto_create_subnetworks         = false
   routing_mode                    = "REGIONAL"
-  mtu                             = 1000
+  mtu                             = 100
   project                         = var.project
 }
 
@@ -1476,7 +1476,7 @@ resource "google_container_node_pool" "posture_iac_demo_node_pool" {
   name               = "acme-node-pool"
   cluster            = "acme-cluster"
   project            = var.project
-  initial_node_count = 3
+  initial_node_count = 2
 
   node_config {
     preemptible  = true
@@ -1491,10 +1491,11 @@ resource "google_storage_bucket" "posture_iac_demo_bucket" {
 
   project = var.project
 
-  uniform_bucket_level_access = true
+  uniform_bucket_level_access = false
 
-  logging {
-    log_bucket   = "my-unique-logging-bucket" // Create a separate bucket for logs
-    log_object_prefix = "tf-logs/"             // Optional prefix for better structure
-  }
+  #logging {
+  #  log_bucket   = "my-unique-logging-bucket" // Create a separate bucket for logs
+  #  log_object_prefix = "tf-logs/"             // Optional prefix for better structure
+  #}
 }
+*/
