@@ -1430,7 +1430,7 @@ module "vpcsc_alerting" {
 
 /* pending terraform provider upgrade
 
-resource "google_securityposture_posture" "posture_iac_demo" {
+resource "google_securityposture_posture" "posture_iac_demo_policy" {
   posture_id  = "posture_iac_demo"
   parent      = "organizations/${var.organization}"
   location    = "global"
@@ -1453,7 +1453,7 @@ resource "google_securityposture_posture" "posture_iac_demo" {
   }
 }
 
-resource "google_securityposture_posture_deployment" "posture_iac_deployment_demo" {
+resource "google_securityposture_posture_deployment" "posture_iac_demo_deployment" {
   posture_deployment_id = "posture_iac_deployment_demo"
   parent                = "organizations/${var.organization}"
   location              = "global"
@@ -1463,3 +1463,34 @@ resource "google_securityposture_posture_deployment" "posture_iac_deployment_dem
   posture_revision_id   = google_securityposture_posture.posture_iac_demo.revision_id
 }
 */
+
+resource "google_compute_network" "posture_iac_demo_network"{
+  name                            = "acme-network"
+  delete_default_routes_on_create = false
+  auto_create_subnetworks         = false
+  routing_mode                    = "REGIONAL"
+  mtu                             = 100
+  project                         = var.project
+}
+
+resource "google_container_node_pool" "posture_iac_demo_node_pool" {
+  name               = "acme-node-pool"
+  cluster            = "acme-cluster"
+  project            = var.project
+  initial_node_count = 2
+
+  node_config {
+    preemptible  = true
+    machine_type = "e2-medium"
+  }
+}
+
+resource "google_storage_bucket" "posture_iac_demo_bucket" {
+  name          = "acme-bucket"
+  location      = "EU"
+  force_destroy = true
+
+  project = var.project
+
+  uniform_bucket_level_access = false
+}
