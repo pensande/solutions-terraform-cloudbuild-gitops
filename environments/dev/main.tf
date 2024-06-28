@@ -87,7 +87,7 @@ resource "google_secret_manager_secret" "mysql-root-password" {
   secret_id = "mysql-root-password"
 
   replication {
-    automatic = true
+    auto {}
   }
 }
 
@@ -353,7 +353,7 @@ resource "google_secret_manager_secret" "pulumi_access_token" {
   secret_id = "pulumi-access-token"
 
   replication {
-    automatic = true
+    auto {}
   }
 }
 
