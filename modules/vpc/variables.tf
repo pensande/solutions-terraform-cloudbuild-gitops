@@ -19,8 +19,8 @@ variable "secondary_ranges" {
     default = null
     type = list(object(
         {
-            event_type  = string
-            resource    = string
+            range_name      = string
+            ip_cidr_range   = string
         }
     ))
 }
