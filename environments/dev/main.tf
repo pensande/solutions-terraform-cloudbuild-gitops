@@ -35,18 +35,16 @@ module "vpc" {
   project           = var.project
   env               = local.env
   region            = var.region
-  secondary_ranges  = {
-    "${local.env}-subnet-01" = [
-        {
-            range_name      = "cluster-ipv4-cidr-block"
-            ip_cidr_range   = "10.224.0.0/14"
-        },
-        {
-            range_name      = "services-ipv4-cidr-block"
-            ip_cidr_range   = "10.228.0.0/20"
-        }
-    ]
-  }
+  secondary_ranges  = [
+    {
+      range_name      = "cluster-ipv4-cidr-block"
+      ip_cidr_range   = "10.224.0.0/14"
+    },
+    {
+      range_name      = "services-ipv4-cidr-block"
+      ip_cidr_range   = "10.228.0.0/20"
+    }
+  ]
 }
 
 module "cloud_nat" {
@@ -89,7 +87,7 @@ resource "google_secret_manager_secret" "mysql-root-password" {
   secret_id = "mysql-root-password"
 
   replication {
-    automatic = true
+    auto {}
   }
 }
 
@@ -355,7 +353,7 @@ resource "google_secret_manager_secret" "pulumi_access_token" {
   secret_id = "pulumi-access-token"
 
   replication {
-    automatic = true
+    auto {}
   }
 }
 
@@ -904,14 +902,12 @@ module "secundus_vpc" {
   project = var.secundus_project
   region  = var.region
   env     = "cc-demo-workload"
-  secondary_ranges  = {
-    "cc-demo-workload-subnet-01" = [
-        {
-            range_name      = "random"
-            ip_cidr_range   = "10.224.0.0/14"
-        }
-    ]
-  }
+  secondary_ranges  = [
+    {
+      range_name      = "random"
+      ip_cidr_range   = "10.224.0.0/14"
+    }
+  ]
 }
 
 # disable org policy to create VMs using confidential space image

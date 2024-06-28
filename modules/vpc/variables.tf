@@ -17,5 +17,10 @@ variable "env" {}
 variable "region" {}
 variable "secondary_ranges" {
     default = null
-    type = map
+    type = list(object(
+        {
+            range_name      = string
+            ip_cidr_range   = string
+        }
+    ))
 }
