@@ -52,18 +52,16 @@ module "vpc" {
   project           = var.project
   env               = local.env
   region            = var.region
-  secondary_ranges  = {
-    "${local.env}-subnet-01" = [
-        {
-            range_name      = "cluster-ipv4-cidr-block"
-            ip_cidr_range   = "10.224.0.0/14"
-        },
-        {
-            range_name      = "services-ipv4-cidr-block"
-            ip_cidr_range   = "10.228.0.0/20"
-        }
-    ]
-  }
+  secondary_ranges  = [
+    {
+      range_name      = "cluster-ipv4-cidr-block"
+      ip_cidr_range   = "10.224.0.0/14"
+    },
+    {
+      range_name      = "services-ipv4-cidr-block"
+      ip_cidr_range   = "10.228.0.0/20"
+    }
+  ]
 }
 
 module "gke_cluster" {

@@ -35,18 +35,16 @@ module "vpc" {
   project           = var.project
   env               = local.env
   region            = var.region
-  secondary_ranges  = {
-    "${local.env}-subnet-01" = [
-        {
-            range_name      = "cluster-ipv4-cidr-block"
-            ip_cidr_range   = "10.224.0.0/14"
-        },
-        {
-            range_name      = "services-ipv4-cidr-block"
-            ip_cidr_range   = "10.228.0.0/20"
-        }
-    ]
-  }
+  secondary_ranges  = [
+    {
+      range_name      = "cluster-ipv4-cidr-block"
+      ip_cidr_range   = "10.224.0.0/14"
+    },
+    {
+      range_name      = "services-ipv4-cidr-block"
+      ip_cidr_range   = "10.228.0.0/20"
+    }
+  ]
 }
 
 module "cloud_nat" {
@@ -89,7 +87,7 @@ resource "google_secret_manager_secret" "mysql-root-password" {
   secret_id = "mysql-root-password"
 
   replication {
-    automatic = true
+    auto {}
   }
 }
 
@@ -355,7 +353,7 @@ resource "google_secret_manager_secret" "pulumi_access_token" {
   secret_id = "pulumi-access-token"
 
   replication {
-    automatic = true
+    auto {}
   }
 }
 
@@ -565,9 +563,9 @@ resource "google_iap_web_backend_service_iam_member" "iap_run_sql_demo_member" {
   role                  = "roles/iap.httpsResourceAccessor"
   member                = "user:${var.iap_user}"
   condition {
-    expression          = "\"accessPolicies/${google_access_context_manager_access_policy.access_policy.name}/accessLevels/windows_encrypted\" in request.auth.access_levels"
+    expression          = "\"accessPolicies/${google_access_context_manager_access_policy.access_policy.name}/accessLevels/india\" in request.auth.access_levels"
     title               = "beyondcorp_access_level"    
-    description         = "enforce beyondcorp access level windows_encrypted"
+    description         = "enforce beyondcorp access level india_region ip_range"
   } 
 }
 
@@ -600,6 +598,7 @@ resource "google_access_context_manager_access_policy" "access_policy" {
   title  = "Access Policy for IAP Demo"
 }
 
+/* commenting out for IaC Scan demo 
 resource "google_access_context_manager_access_level" "access_level" {
   parent = "accessPolicies/${google_access_context_manager_access_policy.access_policy.name}"
   name   = "accessPolicies/${google_access_context_manager_access_policy.access_policy.name}/accessLevels/india"
@@ -622,7 +621,7 @@ resource "google_access_context_manager_access_level_condition" "access_level_co
   ip_subnetworks = ["192.0.4.0/24"]
   negate = false
 }
-
+*/
 #################################################
 ## GKE Security Posture Dashboard with BQ Demo ##
 #################################################
@@ -903,14 +902,12 @@ module "secundus_vpc" {
   project = var.secundus_project
   region  = var.region
   env     = "cc-demo-workload"
-  secondary_ranges  = {
-    "cc-demo-workload-subnet-01" = [
-        {
-            range_name      = "random"
-            ip_cidr_range   = "10.224.0.0/14"
-        }
-    ]
-  }
+  secondary_ranges  = [
+    {
+      range_name      = "random"
+      ip_cidr_range   = "10.224.0.0/14"
+    }
+  ]
 }
 
 # disable org policy to create VMs using confidential space image
@@ -1429,9 +1426,9 @@ module "vpcsc_alerting" {
 
 /* pending terraform provider upgrade
 
-resource "google_securityposture_posture" "posture_iac_demo" {
+resource "google_securityposture_posture" "posture_iac_demo_policy" {
   posture_id  = "posture_iac_demo"
-  parent      = "organizations/${organization}"
+  parent      = "organizations/${var.organization}"
   location    = "global"
   state       = "ACTIVE"
   description = "security posture demo with iac validation"
@@ -1452,13 +1449,49 @@ resource "google_securityposture_posture" "posture_iac_demo" {
   }
 }
 
-resource "google_securityposture_posture_deployment" "posture_iac_deployment_demo" {
+resource "google_securityposture_posture_deployment" "posture_iac_demo_deployment" {
   posture_deployment_id = "posture_iac_deployment_demo"
-  parent                = "organizations/${organization}"
+  parent                = "organizations/${var.organization}"
   location              = "global"
   description           = "deployment of security posture demo with iac"
   target_resource       = "projects/${project}"
   posture_id            = google_securityposture_posture.posture_iac_demo.name
   posture_revision_id   = google_securityposture_posture.posture_iac_demo.revision_id
+}
+
+resource "google_compute_network" "posture_iac_demo_network"{
+  name                            = "acme-network"
+  delete_default_routes_on_create = false
+  auto_create_subnetworks         = false
+  routing_mode                    = "REGIONAL"
+  mtu                             = 100
+  project                         = var.project
+}
+
+resource "google_container_node_pool" "posture_iac_demo_node_pool" {
+  name               = "acme-node-pool"
+  cluster            = "acme-cluster"
+  project            = var.project
+  initial_node_count = 2
+
+  node_config {
+    preemptible  = true
+    machine_type = "e2-medium"
+  }
+}
+
+resource "google_storage_bucket" "posture_iac_demo_bucket" {
+  name          = "pensande-acme-bucket"
+  location      = "EU"
+  force_destroy = true
+
+  project = var.project
+
+  uniform_bucket_level_access = false
+
+  #logging {
+  #  log_bucket   = "my-unique-logging-bucket" // Create a separate bucket for logs
+  #  log_object_prefix = "tf-logs/"             // Optional prefix for better structure
+  #}
 }
 */

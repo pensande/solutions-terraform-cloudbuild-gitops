@@ -12,23 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+resource "google_compute_network" "vpc" {
+  project                 = var.project
+  name                    = "${var.env}-vpc"
+  auto_create_subnetworks = false
+}
 
-module "vpc" {
-  source  = "terraform-google-modules/network/google"
-  version = "~> 6.0"
-
-  project_id   = "${var.project}"
-  network_name = "${var.env}-vpc"
-
-  subnets = [
-    {
-      subnet_name           = "${var.env}-subnet-01"
-      subnet_ip             = "10.${var.env == "dev" ? 10 : 20}.0.0/24"
-      subnet_region         = var.region
-      subnet_private_access = "true"
-    },
-  ]
+resource "google_compute_subnetwork" "subnet" {
+  project       = var.project
+  name          = "${var.env}-subnet-01"
+  ip_cidr_range = "10.${var.env == "dev" ? 10 : 20}.0.0/24"
+  region        = var.region
+  network       = google_compute_network.vpc.id
   
-  secondary_ranges = var.secondary_ranges == null ? null : var.secondary_ranges
-
+  dynamic "secondary_ip_range" {
+    for_each = var.secondary_ranges == null ? [] : var.secondary_ranges
+    content {
+      range_name    = secondary_ip_range.value.range_name
+      ip_cidr_range = secondary_ip_range.value.ip_cidr_range
+    }
+  }
 }

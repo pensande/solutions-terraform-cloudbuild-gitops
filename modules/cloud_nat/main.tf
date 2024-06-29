@@ -8,7 +8,7 @@ resource "google_compute_router" "router" {
 
 module "cloud-nat" {
   source                             = "terraform-google-modules/cloud-nat/google"
-  version                            = "~> 2.0.0"
+  version                            = "~> 5.0"
   project_id                         = "${var.project}"
   region                             = "${var.region}"
   router                             = google_compute_router.router.name

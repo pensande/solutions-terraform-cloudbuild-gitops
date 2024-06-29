@@ -57,7 +57,7 @@ steps:
   - | 
       if [ -d "environments/$BRANCH_NAME/" ]; then
         cd environments/$BRANCH_NAME
-        terraform plan
+        terraform plan -out tf.plan
       else
         for dir in environments/*/
         do 
@@ -73,6 +73,49 @@ steps:
         done
       fi 
 # [END tf-plan]
+
+# [START tf-show]
+- id: 'tf show'
+  name: 'hashicorp/terraform:1.0.0'
+  entrypoint: 'sh'
+  args: 
+  - '-c'
+  - | 
+      if [ -d "environments/$BRANCH_NAME/" ]; then
+        cd environments/$BRANCH_NAME
+        terraform show -json tf.plan > plan.json
+      fi 
+# [END tf-show]
+
+# [START tf-scan]
+- id: 'tf scan'
+  name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: '/bin/bash'
+  args: 
+  - '-c'
+  - | 
+      if [ -d "environments/$BRANCH_NAME/" ]; then
+        cd environments/$BRANCH_NAME
+        gcloud scc iac-validation-reports create \
+        organizations/118518422342/locations/global --tf-plan-file=plan.json \
+        --format="json(response.iacValidationReport)" > IaCScanReport_$BUILD_ID.json
+        gcloud storage cp IaCScanReport_$BUILD_ID.json gs://iac-scan-results
+      fi 
+# [END tf-scan]
+
+# [START tf-validate]
+- id: 'tf validate'
+  name: 'golang'
+  entrypoint: '/bin/bash'
+  args: 
+  - '-c'
+  - | 
+      if [ -d "environments/$BRANCH_NAME/" ]; then
+        cd environments/$BRANCH_NAME
+        go run github.com/pritiprajapati314/IACPlugin2024/ReportValidator@latest \
+        --filePath=IaCScanReport_$BUILD_ID.json --expression='Critical:1,High:1,Medium:1,Low:1,Operator:or'
+      fi 
+# [END tf-validate]
 
 # [START tf-apply]
 - id: 'tf apply'
