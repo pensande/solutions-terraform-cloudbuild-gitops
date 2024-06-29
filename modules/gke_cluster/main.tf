@@ -35,6 +35,7 @@ resource "google_container_cluster" "cluster" {
   initial_node_count            = 1
   
   enable_shielded_nodes         = true
+  deletion_protection           = false
   
   binary_authorization {
     evaluation_mode = "PROJECT_SINGLETON_POLICY_ENFORCE"
