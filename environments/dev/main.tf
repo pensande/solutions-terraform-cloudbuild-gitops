@@ -1025,46 +1025,6 @@ resource "google_compute_instance" "second_workload_cvm" {
   depends_on = [time_sleep.wait_disable_trusted_image_projects]
 }
 
-#####################################
-## Vertex AI Security Posture Demo ##
-#####################################
-/*
-resource "google_securityposture_posture" "vertex_ai_posture" {
-  provider      = google-beta
-  posture_id  = "vertex_ai_posture"
-  parent      = "organizations/${var.organization}"
-  location    = "global"
-  state       = "ACTIVE"
-  description = "security posture demo for vertex ai"
-  policy_sets {
-    policy_set_id = "org_policy_set"
-    description   = "set of org policies"
-    policies {
-      policy_id = "policy_1"
-      constraint {
-        org_policy_constraint {
-          canned_constraint_id = "storage.uniformBucketLevelAccess"
-          policy_rules {
-              enforce = true
-          }
-        }
-      }
-    }
-  }
-}
-
-resource "google_securityposture_posture_deployment" "vertexai_posture_deployment" {
-  provider              = google-beta
-  posture_deployment_id = "vertexai_posture_deployment"
-  parent                = "organizations/${var.organization}"
-  location              = "global"
-  description           = "vertex ai security posture deployment"
-  target_resource       = "projects/${var.project}"
-  posture_id            = google_securityposture_posture.vertex_ai_posture.name
-  posture_revision_id   = google_securityposture_posture.vertex_ai_posture.revision_id
-}
-*/
-
 #########################
 ## Active Defense Demo ##
 #########################
@@ -1424,9 +1384,7 @@ module "vpcsc_alerting" {
 ## Security Posture with IaC Validation Demo ##
 ###############################################
 
-/* pending terraform provider upgrade
-
-resource "google_securityposture_posture" "posture_iac_demo_policy" {
+resource "google_securityposture_posture" "posture_iac_demo" {
   posture_id  = "posture_iac_demo"
   parent      = "organizations/${var.organization}"
   location    = "global"
@@ -1436,10 +1394,18 @@ resource "google_securityposture_posture" "posture_iac_demo_policy" {
     policy_set_id = "org_policy_set"
     description   = "set of org policies"
     policies {
-      policy_id = "policy_1"
+      policy_id = "custom_org_policy"
       constraint {
-        org_policy_constraint {
-          canned_constraint_id = "storage.uniformBucketLevelAccess"
+        org_policy_constraint_custom {
+          custom_constraint {
+            name           = "organizations/${var.organization}/customConstraints/custom.fixedNodeCount"
+            display_name   = "fixedNodeCount"
+            description    = "Set initial node count to be exactly 1."
+            action_type    = "ALLOW"
+            condition      = "resource.initialNodeCount == 1"
+            method_types   = ["CREATE", "UPDATE"]
+            resource_types = ["container.googleapis.com/NodePool"]
+          }
           policy_rules {
             enforce = true
           }
@@ -1447,24 +1413,68 @@ resource "google_securityposture_posture" "posture_iac_demo_policy" {
       }
     }
   }
+  policy_sets {
+    policy_set_id = "sha_policy_set"
+    description   = "set of sha policies"
+    policies {
+      policy_id = "bucket_logging_disabled"
+      constraint {
+        security_health_analytics_module {
+          module_name             = "BUCKET_LOGGING_DISABLED"
+          module_enablement_state = "ENABLED"
+        }
+      }
+      description = "enable bucket logs"
+    }
+    policies {
+      policy_id = "custom_sha_module"
+      constraint {
+        security_health_analytics_custom_module {
+          display_name = "fixedMTU"
+          config {
+            predicate {
+              expression = "!(resource.mtu == 1460)"
+            }
+            custom_output {
+              properties {
+                name = "fixed_mtu"
+                value_expression {
+                  expression = "resource.mtu"
+                }
+              }
+            }
+            resource_selector {
+              resource_types = ["compute.googleapis.com/Network"]
+            }
+            severity       = "CRITICAL"
+            description    = "Set MTU for a network to be exactly 1460."
+            recommendation = "Only create networks whose MTU is 1460."
+          }
+          module_enablement_state = "ENABLED"
+        }
+      }
+    }
+  }
 }
 
 resource "google_securityposture_posture_deployment" "posture_iac_demo_deployment" {
-  posture_deployment_id = "posture_iac_deployment_demo"
+  posture_deployment_id = "posture_iac_demo_deployment"
   parent                = "organizations/${var.organization}"
   location              = "global"
   description           = "deployment of security posture demo with iac"
-  target_resource       = "projects/${project}"
+  target_resource       = "projects/${data.google_project.project.number}"
   posture_id            = google_securityposture_posture.posture_iac_demo.name
   posture_revision_id   = google_securityposture_posture.posture_iac_demo.revision_id
 }
+
+/* non-compliant resources for posture_iac_demo
 
 resource "google_compute_network" "posture_iac_demo_network"{
   name                            = "acme-network"
   delete_default_routes_on_create = false
   auto_create_subnetworks         = false
   routing_mode                    = "REGIONAL"
-  mtu                             = 100
+  mtu                             = 1500
   project                         = var.project
 }
 
@@ -1490,7 +1500,7 @@ resource "google_storage_bucket" "posture_iac_demo_bucket" {
   uniform_bucket_level_access = false
 
   #logging {
-  #  log_bucket   = "my-unique-logging-bucket" // Create a separate bucket for logs
+  #  log_bucket   = "pensande-test-bucket" // Create a separate bucket for logs
   #  log_object_prefix = "tf-logs/"             // Optional prefix for better structure
   #}
 }
