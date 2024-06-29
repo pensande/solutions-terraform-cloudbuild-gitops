@@ -1466,7 +1466,7 @@ resource "google_securityposture_posture_deployment" "posture_iac_demo_deploymen
   posture_id            = google_securityposture_posture.posture_iac_demo.name
   posture_revision_id   = google_securityposture_posture.posture_iac_demo.revision_id
 }
-/*
+
 resource "google_compute_network" "posture_iac_demo_network"{
   name                            = "acme-network"
   delete_default_routes_on_create = false
@@ -1502,4 +1502,3 @@ resource "google_storage_bucket" "posture_iac_demo_bucket" {
   #  log_object_prefix = "tf-logs/"             // Optional prefix for better structure
   #}
 }
-*/
