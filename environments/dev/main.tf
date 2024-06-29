@@ -1025,46 +1025,6 @@ resource "google_compute_instance" "second_workload_cvm" {
   depends_on = [time_sleep.wait_disable_trusted_image_projects]
 }
 
-#####################################
-## Vertex AI Security Posture Demo ##
-#####################################
-/*
-resource "google_securityposture_posture" "vertex_ai_posture" {
-  provider      = google-beta
-  posture_id  = "vertex_ai_posture"
-  parent      = "organizations/${var.organization}"
-  location    = "global"
-  state       = "ACTIVE"
-  description = "security posture demo for vertex ai"
-  policy_sets {
-    policy_set_id = "org_policy_set"
-    description   = "set of org policies"
-    policies {
-      policy_id = "policy_1"
-      constraint {
-        org_policy_constraint {
-          canned_constraint_id = "storage.uniformBucketLevelAccess"
-          policy_rules {
-              enforce = true
-          }
-        }
-      }
-    }
-  }
-}
-
-resource "google_securityposture_posture_deployment" "vertexai_posture_deployment" {
-  provider              = google-beta
-  posture_deployment_id = "vertexai_posture_deployment"
-  parent                = "organizations/${var.organization}"
-  location              = "global"
-  description           = "vertex ai security posture deployment"
-  target_resource       = "projects/${var.project}"
-  posture_id            = google_securityposture_posture.vertex_ai_posture.name
-  posture_revision_id   = google_securityposture_posture.vertex_ai_posture.revision_id
-}
-*/
-
 #########################
 ## Active Defense Demo ##
 #########################
@@ -1424,9 +1384,7 @@ module "vpcsc_alerting" {
 ## Security Posture with IaC Validation Demo ##
 ###############################################
 
-/* pending terraform provider upgrade
-
-resource "google_securityposture_posture" "posture_iac_demo_policy" {
+resource "google_securityposture_posture" "posture_iac_demo" {
   posture_id  = "posture_iac_demo"
   parent      = "organizations/${var.organization}"
   location    = "global"
@@ -1450,21 +1408,21 @@ resource "google_securityposture_posture" "posture_iac_demo_policy" {
 }
 
 resource "google_securityposture_posture_deployment" "posture_iac_demo_deployment" {
-  posture_deployment_id = "posture_iac_deployment_demo"
+  posture_deployment_id = "posture_iac_demo_deployment"
   parent                = "organizations/${var.organization}"
   location              = "global"
   description           = "deployment of security posture demo with iac"
-  target_resource       = "projects/${project}"
+  target_resource       = "projects/${var.project}"
   posture_id            = google_securityposture_posture.posture_iac_demo.name
   posture_revision_id   = google_securityposture_posture.posture_iac_demo.revision_id
 }
-
+/*
 resource "google_compute_network" "posture_iac_demo_network"{
   name                            = "acme-network"
   delete_default_routes_on_create = false
   auto_create_subnetworks         = false
   routing_mode                    = "REGIONAL"
-  mtu                             = 100
+  mtu                             = 1500
   project                         = var.project
 }
 
