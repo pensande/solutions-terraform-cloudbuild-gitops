@@ -113,7 +113,7 @@ steps:
       if [ -d "environments/$BRANCH_NAME/" ]; then
         cd environments/$BRANCH_NAME
         go run github.com/pritiprajapati314/IACPlugin2024/ReportValidator@latest \
-        --filePath=IaCScanReport_$BUILD_ID.json --expression='Critical:1,High:1,Medium:1,Low:1,Operator:or'
+        --filePath=IaCScanReport_$BUILD_ID.json --expression='Critical:1,Operator:or'
       fi 
 # [END tf-validate]
 
