@@ -1437,7 +1437,7 @@ resource "google_securityposture_posture" "posture_iac_demo" {
             }
             custom_output {
               properties {
-                name = "fixedMTU"
+                name = "fixed_mtu"
                 value_expression {
                   expression = "resource.mtu"
                 }
