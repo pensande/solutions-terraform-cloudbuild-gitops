@@ -36,7 +36,7 @@ resource "google_service_networking_connection" "private_service_access" {
 resource "google_cloud_ids_endpoint" "ids_endpoint" {
   project  = var.demo_project_id
   network  = var.vpc_network
-  name     = "ids-endpoint-${vpc_subnet}"
+  name     = "ids-endpoint-${var.vpc_subnet}"
   location = "${var.subnetwork_region}-c"
   severity = "INFORMATIONAL"
   
@@ -49,7 +49,7 @@ resource "google_cloud_ids_endpoint" "ids_endpoint" {
 resource "google_compute_packet_mirroring" "ids_packet_mirroring" {
   project     = var.demo_project_id
   region      = var.subnetwork_region
-  name        = "ids-packet-mirroring-${vpc_subnet}"
+  name        = "ids-packet-mirroring-${var.vpc_subnet}"
   description = "Packet Mirroring for Cloud IDS"
   network {
     url = var.vpc_network
@@ -138,7 +138,7 @@ resource "google_compute_instance" "ids_demo_attacker_machine" {
 
   depends_on = [
     google_compute_instance.ids_demo_victim_server,
-    google_compute_packet_mirroring.cloud_ids_packet_mirroring,
+    google_compute_packet_mirroring.ids_packet_mirroring,
   ]
 }
 
