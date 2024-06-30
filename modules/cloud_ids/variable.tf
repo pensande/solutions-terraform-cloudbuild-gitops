@@ -16,7 +16,7 @@
 ##  This code creates PoC demo environment for Cloud IDS
 ##  This demo code is not built for production workload ##
 
-variable "demo_project_id" {
+variable "project_id" {
   type        = string
   description = "Project ID to deploy resources"
 }

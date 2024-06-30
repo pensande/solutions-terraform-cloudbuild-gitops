@@ -17,26 +17,26 @@
 ##  This demo code is not built for production workload ##
 
 resource "google_compute_global_address" "ids_producer_ip_range" {
-    project       = var.demo_project_id
-    network       = var.vpc_network
-    name          = "ids-producer-ip-range"
-    description   = "Cloud IDS Producer IP Range"
-    purpose       = "VPC_PEERING"
-    address_type  = "INTERNAL"
-    address       = "192.168.0.0"
-    prefix_length = 24
+  project       = var.project_id
+  network       = var.vpc_network
+  name          = "ids-producer-ip-range"
+  description   = "Cloud IDS Producer IP Range"
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  address       = "192.168.0.0"
+  prefix_length = 24
 }
 
 resource "google_service_networking_connection" "private_service_access" {
-    network                 = var.vpc_network
-    service                 = "servicenetworking.googleapis.com"
-    reserved_peering_ranges = [google_compute_global_address.ids_producer_ip_range.name]
+  network                 = var.vpc_network
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.ids_producer_ip_range.name]
 }
 
-resource "google_cloud_ids_endpoint" "ids_endpoint" {
-  project  = var.demo_project_id
+resource "google_cloud_ids_endpoint" "ids_demo_endpoint" {
+  project  = var.project_id
   network  = var.vpc_network
-  name     = "ids-endpoint-${var.vpc_subnet}"
+  name     = "ids-demo-endpoint"
   location = "${var.subnetwork_region}-c"
   severity = "INFORMATIONAL"
   
@@ -46,10 +46,10 @@ resource "google_cloud_ids_endpoint" "ids_endpoint" {
   ]
 }
 
-resource "google_compute_packet_mirroring" "ids_packet_mirroring" {
-  project     = var.demo_project_id
+resource "google_compute_packet_mirroring" "ids_demo_packet_mirroring" {
+  project     = var.project_id
   region      = var.subnetwork_region
-  name        = "ids-packet-mirroring-${var.vpc_subnet}"
+  name        = "ids-demo-packet-mirroring"
   description = "Packet Mirroring for Cloud IDS"
   network {
     url = var.vpc_network
@@ -60,19 +60,19 @@ resource "google_compute_packet_mirroring" "ids_packet_mirroring" {
     }
   }
   collector_ilb {
-    url = google_cloud_ids_endpoint.ids_endpoint.endpoint_forwarding_rule
+    url = google_cloud_ids_endpoint.ids_demo_endpoint.endpoint_forwarding_rule
   }
 }
 
 resource "google_service_account" "ids_demo_service_account" {
-  project      = var.demo_project_id
+  project      = var.project_id
   account_id   = "ids-demo-service-account"
   display_name = "Service Account for Cloud IDS Demo"
 }
 
 # Create Server Instance
 resource "google_compute_instance" "ids_demo_victim_server" {
-  project      = var.demo_project_id
+  project      = var.project_id
   zone         = "${var.subnetwork_region}-c"
   name         = "ids-demo-victim-server"
   machine_type = "e2-micro"
@@ -103,7 +103,7 @@ resource "google_compute_instance" "ids_demo_victim_server" {
 
 # Create Attacker Instance
 resource "google_compute_instance" "ids_demo_attacker_machine" {
-  project      = var.demo_project_id
+  project      = var.project_id
   zone         = "${var.subnetwork_region}-c"
   name         = "ids-demo-attacker-machine"
   machine_type = "e2-micro"
@@ -138,13 +138,13 @@ resource "google_compute_instance" "ids_demo_attacker_machine" {
 
   depends_on = [
     google_compute_instance.ids_demo_victim_server,
-    google_compute_packet_mirroring.ids_packet_mirroring,
+    google_compute_packet_mirroring.ids_demo_packet_mirroring,
   ]
 }
 
 # Enable SSH through IAP
 resource "google_compute_firewall" "ids_allow_iap_proxy" {
-  project   = var.demo_project_id
+  project   = var.project_id
   network   = var.vpc_network
   name      = "ids-allow-iap-proxy"
   direction = "INGRESS"
@@ -160,7 +160,7 @@ resource "google_compute_firewall" "ids_allow_iap_proxy" {
 
 # Firewall rule to allow icmp & http
 resource "google_compute_firewall" "ids_allow_http_icmp" {
-  project   = var.demo_project_id
+  project   = var.project_id
   network   = var.vpc_network
   name      = "ids-allow-http-icmp"
   direction = "INGRESS"

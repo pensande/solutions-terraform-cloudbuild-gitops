@@ -664,7 +664,7 @@ resource "google_bigquery_dataset_iam_member" "dataset_iam_member" {
 module "cloud_ids" {
   count             = var.create_ids_demo ? 1 : 0
   source            = "../../modules/cloud_ids"
-  demo_project_id   = var.project
+  project_id   = var.project
   subnetwork_region = var.region
   vpc_network       = module.vpc.id
   vpc_subnet        = module.vpc.subnet
