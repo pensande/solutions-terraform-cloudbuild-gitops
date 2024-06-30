@@ -18,17 +18,17 @@
 
 
 output "_1_ids_victim_server_ip" {
-  value = "IDS victim server ip - ${google_compute_instance.ids_victim_server.network_interface[0].network_ip}"
+  value = "IDS victim server ip - ${google_compute_instance.ids_demo_victim_server.network_interface[0].network_ip}"
 }
 
 output "_2_ids_attacker_server" {
-  value = "IDS attacker server ip - ${google_compute_instance.ids_attacker_machine.network_interface[0].network_ip}"
+  value = "IDS attacker server ip - ${google_compute_instance.ids_demo_attacker_machine.network_interface[0].network_ip}"
 }
 
 output "_3_ids_iap_ssh_attacker_server" {
-  value = "gcloud compute ssh --zone ${var.subnetwork_region}-b ${google_compute_instance.ids_attacker_machine.name}  --tunnel-through-iap --project ${var.demo_project_id}"
+  value = "gcloud compute ssh --zone ${var.subnetwork_region}-b ${google_compute_instance.ids_demo_attacker_machine.name}  --tunnel-through-iap --project ${var.project_id}"
 }
 
 output "_4_ids_sample_attack_command" {
-  value = "curl http://${google_compute_instance.ids_victim_server.network_interface[0].network_ip}/cgi-bin/../../../..//bin/cat%20/etc/passwd"
+  value = "curl http://${google_compute_instance.ids_demo_victim_server.network_interface[0].network_ip}/cgi-bin/../../../..//bin/cat%20/etc/passwd"
 }
