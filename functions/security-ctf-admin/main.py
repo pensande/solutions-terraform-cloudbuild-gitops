@@ -11,7 +11,7 @@ def security_ctf_admin(request):
     storage_role     = os.environ.get('STORAGE_ROLE', 'Specified environment variable is not set.')
     
     # org_roles = ["securitycenter.adminViewer", "logging.viewer"] if event['env_name'] == 'easy' else ["logging.viewer"]
-    predefined_roles = ["iam.securityReviewer", "cloudsecurityscanner.viewer", "compute.viewer", "bigquery.dataViewer", "bigquery.user", "dlp.reader", "monitoring.viewer"]
+    predefined_roles = ["iam.securityReviewer", "cloudsecurityscanner.viewer", "compute.viewer", "bigquery.dataViewer", "bigquery.user", "dlp.reader", "monitoring.viewer", "ids.viewer"]
     custom_roles = [storage_role]
 
     try:
