@@ -112,8 +112,8 @@ steps:
   - | 
       if [ -d "environments/$BRANCH_NAME/" ]; then
         cd environments/$BRANCH_NAME
-        go run github.com/pritiprajapati314/IACPlugin2024/ReportValidator@latest \
-        --filePath=IaCScanReport_$BUILD_ID.json --expression='Critical:1,Operator:or'
+        go run github.com/google/gcp-scc-iac-validation-utils/ReportValidator@latest \
+        --inputFilePath=IaCScanReport_$BUILD_ID.json --failure_expression=Critical:1,High:1,Operator:OR
       fi 
 # [END tf-validate]
 
