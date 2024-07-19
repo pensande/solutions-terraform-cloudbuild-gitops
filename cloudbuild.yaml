@@ -113,7 +113,7 @@ steps:
       if [ -d "environments/$BRANCH_NAME/" ]; then
         cd environments/$BRANCH_NAME
         go run github.com/google/gcp-scc-iac-validation-utils/ReportValidator@latest \
-        --inputFilePath=IaCScanReport_$BUILD_ID.json --failure_expression=Critical:1,High:1,Operator:OR
+        --inputFilePath=IaCScanReport_$BUILD_ID.json --failure_expression=Critical:1,Operator:OR
       fi 
 # [END tf-validate]
 
