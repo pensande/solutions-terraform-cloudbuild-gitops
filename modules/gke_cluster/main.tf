@@ -62,6 +62,12 @@ resource "google_container_cluster" "cluster" {
   workload_identity_config {
     workload_pool = "${var.project}.svc.id.goog"
   }
+
+  addons_config {
+    kubernetes_dashboard {
+      disabled = true
+    }
+  }
 }
 
 resource "google_container_node_pool" "primary_preemptible_nodes" {
