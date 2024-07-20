@@ -556,7 +556,7 @@ resource "google_iap_client" "iap_run_sql_demo_client" {
   brand         =  "projects/${var.project}/brands/${data.google_project.project.number}"
 }
 
-/*
+
 # Allow users secure access to the iap-run-sql-demo app
 resource "google_iap_web_backend_service_iam_member" "iap_run_sql_demo_member" {
   count                 = var.create_iap_run_sql_demo ? 1 : 0
@@ -570,7 +570,7 @@ resource "google_iap_web_backend_service_iam_member" "iap_run_sql_demo_member" {
     description         = "enforce beyondcorp access level india_region ip_range"
   } 
 }
-*/
+
 
 # Allow IAP to invoke the cloud run service
 resource "google_project_service_identity" "iap_sa" {
