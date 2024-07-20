@@ -369,7 +369,8 @@ resource "google_compute_global_address" "iap_run_sql_demo" {
 
 # ssl certificate
 resource "google_compute_managed_ssl_certificate" "iap_run_sql_demo_cert" {
-  name = "iap-run-sql-demo-certificate"
+  count     = var.create_iap_run_sql_demo ? 1 : 0
+  name      = "iap-run-sql-demo-certificate"
 
   managed {
     domains = ["run.agarsand.demo.altostrat.com."]
@@ -393,7 +394,7 @@ resource "google_compute_target_https_proxy" "iap_run_sql_demo" {
   count       = var.create_iap_run_sql_demo ? 1 : 0
   name        = "iap-run-sql-demo"
   url_map     = google_compute_url_map.iap_run_sql_demo[0].id
-  ssl_certificates = [google_compute_managed_ssl_certificate.iap_run_sql_demo_cert.id]
+  ssl_certificates = [google_compute_managed_ssl_certificate.iap_run_sql_demo_cert[0].id]
 }
 
 # url map
