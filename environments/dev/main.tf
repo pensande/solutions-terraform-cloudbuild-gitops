@@ -370,7 +370,7 @@ resource "google_compute_global_address" "iap_run_sql_demo" {
 # ssl certificate
 resource "google_compute_managed_ssl_certificate" "iap_run_sql_demo_cert" {
   count     = var.create_iap_run_sql_demo ? 1 : 0
-  name      = "iap-run-sql-demo-certificate"
+  name      = "iap-run-sql-demo-cert"
 
   managed {
     domains = ["run.agarsand.demo.altostrat.com."]
