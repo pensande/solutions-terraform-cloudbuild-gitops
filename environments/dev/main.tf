@@ -562,11 +562,13 @@ resource "google_iap_web_backend_service_iam_member" "iap_run_sql_demo_member" {
   web_backend_service   = google_compute_backend_service.iap_run_sql_demo_backend[0].name
   role                  = "roles/iap.httpsResourceAccessor"
   member                = "user:${var.iap_user}"
+  /*
   condition {
     expression          = "\"accessPolicies/${google_access_context_manager_access_policy.access_policy.name}/accessLevels/india\" in request.auth.access_levels"
     title               = "beyondcorp_access_level"    
     description         = "enforce beyondcorp access level india_region ip_range"
-  } 
+  }
+  */ 
 }
 
 # Allow IAP to invoke the cloud run service
