@@ -459,7 +459,7 @@ resource "google_cloud_run_service" "iap_run_service" {
   template {
     spec {
       containers {
-        image   = "us-central1-docker.pkg.dev/secops-project-348011/binauthz-demo-repo/iap-run-sql-demo@sha256:b8aa54d57d515d91e9524df4b99295e7946eb0a0015b8d7abf9af31b6664d741"
+        image   = "us-central1-docker.pkg.dev/secops-project-348011/binauthz-demo-repo/iap-run-sql-demo@sha256:5988b1f921be502339fee2ada7fbd9046e9cfc4ee731e22c3c7045d35f3bd0a2"
         ports {
           container_port = 8080
         }
@@ -556,6 +556,7 @@ resource "google_iap_client" "iap_run_sql_demo_client" {
   brand         =  "projects/${var.project}/brands/${data.google_project.project.number}"
 }
 
+/*
 # Allow users secure access to the iap-run-sql-demo app
 resource "google_iap_web_backend_service_iam_member" "iap_run_sql_demo_member" {
   count                 = var.create_iap_run_sql_demo ? 1 : 0
@@ -563,14 +564,13 @@ resource "google_iap_web_backend_service_iam_member" "iap_run_sql_demo_member" {
   web_backend_service   = google_compute_backend_service.iap_run_sql_demo_backend[0].name
   role                  = "roles/iap.httpsResourceAccessor"
   member                = "user:${var.iap_user}"
-  /*
   condition {
     expression          = "\"accessPolicies/${google_access_context_manager_access_policy.access_policy.name}/accessLevels/india\" in request.auth.access_levels"
     title               = "beyondcorp_access_level"    
     description         = "enforce beyondcorp access level india_region ip_range"
-  }
-  */ 
+  } 
 }
+*/
 
 # Allow IAP to invoke the cloud run service
 resource "google_project_service_identity" "iap_sa" {
