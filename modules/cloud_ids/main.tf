@@ -141,38 +141,3 @@ resource "google_compute_instance" "ids_demo_attacker_machine" {
     google_compute_packet_mirroring.ids_demo_packet_mirroring,
   ]
 }
-
-# Enable SSH through IAP
-resource "google_compute_firewall" "ids_allow_iap_proxy" {
-  project   = var.project_id
-  network   = var.vpc_network
-  name      = "ids-allow-iap-proxy"
-  direction = "INGRESS"
-  allow {
-    protocol = "tcp"
-    ports    = ["22"]
-  }
-  source_ranges = ["35.235.240.0/20"]
-  target_service_accounts = [
-    google_service_account.ids_demo_service_account.email
-  ]
-}
-
-# Firewall rule to allow icmp & http
-resource "google_compute_firewall" "ids_allow_http_icmp" {
-  project   = var.project_id
-  network   = var.vpc_network
-  name      = "ids-allow-http-icmp"
-  direction = "INGRESS"
-  allow {
-    protocol = "tcp"
-    ports    = ["80"]
-  }
-  source_ranges = [var.vpc_subnet_ip]
-  target_service_accounts = [
-    google_service_account.ids_demo_service_account.email
-  ]
-  allow {
-    protocol = "icmp"
-  }
-}
