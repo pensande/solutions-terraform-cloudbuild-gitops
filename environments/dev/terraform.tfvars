@@ -6,6 +6,7 @@ iap_user="pensande@agarsand.altostrat.com"
 create_dev_gke_cluster = false
 create_iap_run_sql_demo = false
 create_ids_demo = false
+create_ips_demo = true
 create_cc_demo = false
 primus_project = "primus-bank-421307"
 secundus_project = "secundus-bank-421307"

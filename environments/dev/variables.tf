@@ -54,6 +54,12 @@ variable "create_ids_demo" {
   default       = false
 }
 
+variable "create_ips_demo" {
+  description   = "If set to true, it will create the ngfw_ips"
+  type          = bool
+  default       = false
+}
+
 variable "create_cc_demo" {
   description   = "If set to true, it will create the confidential space demo"
   type          = bool

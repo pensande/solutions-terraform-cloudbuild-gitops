@@ -673,6 +673,20 @@ module "cloud_ids" {
   vpc_subnet_ip     = module.vpc.subnet_ip
 }
 
+####################
+## Cloud IPS Demo ##
+####################
+
+module "cloud_ips" {
+  count             = var.create_ips_demo ? 1 : 0
+  source            = "../../modules/ngfw_ips"
+  org_id            = var.organization
+  project_id        = var.project
+  vpc_network       = module.vpc.id
+  subnetwork_region = var.region
+  vpc_subnet_ip     = module.vpc.subnet_ip
+}
+
 ####################################
 ## Security CTF FireStore Backend ##
 ####################################
