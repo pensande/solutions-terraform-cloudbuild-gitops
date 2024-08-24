@@ -82,7 +82,7 @@ resource "google_compute_instance" "ids_demo_victim_server" {
 
   boot_disk {
     initialize_params {
-      image = "debian-cloud/debian-10"
+      image = "debian-cloud/debian-11"
     }
   }
 
@@ -113,7 +113,7 @@ resource "google_compute_instance" "ids_demo_attacker_machine" {
 
   boot_disk {
     initialize_params {
-      image = "debian-cloud/debian-10"
+      image = "debian-cloud/debian-11"
     }
   }
 

@@ -21,9 +21,10 @@ resource "google_network_security_firewall_endpoint" "ips_endpoint" {
 
 resource "google_network_security_firewall_endpoint_association" "ips_endpoint_association" {
   name              = "ips-endpoint-association"
+  parent             = "projects/${var.project_id}"
   network           = var.vpc_network
   location          = "${var.subnetwork_region}-c"
-  firewall_endpoint = google_network_security_firewall_endpoint.ips_endpoint.self_link
+  firewall_endpoint = google_network_security_firewall_endpoint.ips_endpoint.id
 }
 
 resource "google_compute_network_firewall_policy" "ips_ngfw_policy" {
