@@ -670,6 +670,19 @@ module "cloud_ids" {
   subnetwork_region = var.region
   vpc_network       = module.vpc.id
   vpc_subnet        = module.vpc.subnet
+}
+
+####################
+## Cloud IPS Demo ##
+####################
+
+module "cloud_ips" {
+  count             = var.create_ips_demo ? 1 : 0
+  source            = "../../modules/ngfw_ips"
+  org_id            = var.organization
+  project_id        = var.project
+  subnetwork_region = var.region
+  vpc_network       = module.vpc.id
   vpc_subnet_ip     = module.vpc.subnet_ip
 }
 

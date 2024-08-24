@@ -74,6 +74,11 @@ resource "google_project_service" "service_networking" {
   service = "servicenetworking.googleapis.com"
 }
 
+resource "google_project_service" "network_security" {
+  project = var.project
+  service = "networksecurity.googleapis.com"
+}
+
 resource "google_project_service" "firestore" {
   project = var.project
   
