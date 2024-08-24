@@ -670,7 +670,6 @@ module "cloud_ids" {
   subnetwork_region = var.region
   vpc_network       = module.vpc.id
   vpc_subnet        = module.vpc.subnet
-  vpc_subnet_ip     = module.vpc.subnet_ip
 }
 
 ####################
@@ -682,8 +681,8 @@ module "cloud_ips" {
   source            = "../../modules/ngfw_ips"
   org_id            = var.organization
   project_id        = var.project
-  vpc_network       = module.vpc.id
   subnetwork_region = var.region
+  vpc_network       = module.vpc.id
   vpc_subnet_ip     = module.vpc.subnet_ip
 }
 
