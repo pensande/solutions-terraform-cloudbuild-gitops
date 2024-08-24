@@ -1040,6 +1040,7 @@ resource "google_project_iam_audit_config" "audit_logs" {
   depends_on = [
     null_resource.predeploy
   ]
+  count   = var.create_acalvio_demo ? 1 : 0
   project = var.deception_project
   service = "storage.googleapis.com"
   audit_log_config {
@@ -1073,84 +1074,96 @@ resource "random_string" "depname" {
 }
 //9
 resource "google_compute_address" "static_ip_address" {
+  count   = var.create_acalvio_demo ? 1 : 0
   project = var.deception_project
   name    = "sensor-${random_string.depname.result}-addr"
   region  = var.subnet_region
 }
 //10
 resource "google_service_account" "sensor_service_account" {
+  count        = var.create_acalvio_demo ? 1 : 0
   project      = var.deception_project
   account_id   = "sensor-${random_string.depname.result}"
   display_name = "Sensor Service Account"
 }
 //11
 resource "google_project_iam_member" "sensor_iam1" {
+  count   = var.create_acalvio_demo ? 1 : 0
   project = var.deception_project
   role    = "roles/compute.instanceAdmin"
-  member  = format("serviceAccount:%s", google_service_account.sensor_service_account.email)
+  member  = format("serviceAccount:%s", google_service_account.sensor_service_account[0].email)
 }
 //12
 resource "google_project_iam_member" "sensor_iam2" {
+  count   = var.create_acalvio_demo ? 1 : 0
   project = var.deception_project
   role    = "roles/compute.networkUser"
-  member  = format("serviceAccount:%s", google_service_account.sensor_service_account.email)
+  member  = format("serviceAccount:%s", google_service_account.sensor_service_account[0].email)
 }
 //13
 resource "google_project_iam_member" "sensor_iam3" {
+  count   = var.create_acalvio_demo ? 1 : 0
   project = var.deception_project
   role    = "roles/logging.privateLogViewer"
-  member  = format("serviceAccount:%s", google_service_account.sensor_service_account.email)
+  member  = format("serviceAccount:%s", google_service_account.sensor_service_account[0].email)
 }
 //14
 resource "google_project_iam_member" "sensor_iam4" {
+  count   = var.create_acalvio_demo ? 1 : 0
   project = var.deception_project
   role    = "roles/iam.serviceAccountKeyAdmin"
-  member  = format("serviceAccount:%s", google_service_account.sensor_service_account.email)
+  member  = format("serviceAccount:%s", google_service_account.sensor_service_account[0].email)
 }
 //15
 resource "google_project_iam_member" "sensor_iam5" {
+  count   = var.create_acalvio_demo ? 1 : 0
   project = var.deception_project
   role    = "roles/storage.admin"
-  member  = format("serviceAccount:%s", google_service_account.sensor_service_account.email)
+  member  = format("serviceAccount:%s", google_service_account.sensor_service_account[0].email)
 }
 //16
 resource "google_organization_iam_member" "sensor_iam6" {
+  count   = var.create_acalvio_demo ? 1 : 0
   org_id  = "${var.organization}"
   role    = "roles/securitycenter.admin"
-  member  = format("serviceAccount:%s", google_service_account.sensor_service_account.email)
+  member  = format("serviceAccount:%s", google_service_account.sensor_service_account[0].email)
 }
 //17
 resource "google_service_account_iam_member" "sensor_on_nano" {
-  service_account_id = google_service_account.nano_sensor_service_account.id
+  count              = var.create_acalvio_demo ? 1 : 0
+  service_account_id = google_service_account.nano_sensor_service_account[0].id
   role               = "roles/iam.serviceAccountUser"
-  member             = format("serviceAccount:%s", google_service_account.sensor_service_account.email)
+  member             = format("serviceAccount:%s", google_service_account.sensor_service_account[0].email)
 }
 //18
 resource "google_service_account" "nano_sensor_service_account" {
+  count        = var.create_acalvio_demo ? 1 : 0
   project      = var.deception_project
   account_id   = "nano-sensor-${random_string.depname.result}"
   display_name = "Nano Service Account"
 }
 //19
 resource "google_compute_firewall" "sensor_firewall_0" {
+  count   = var.create_acalvio_demo ? 1 : 0
   name    = "shadowplex-decoy-${random_string.depname.result}"
   project = var.host_project 
   network = var.vpc
 
   source_ranges = var.source_ranges //variable
-  target_service_accounts = [ "${google_service_account.nano_sensor_service_account.email}" ]
+  target_service_accounts = [ "${google_service_account.nano_sensor_service_account[0].email}" ]
   allow {
     protocol = "all"
   }
 }
 
 resource "google_compute_firewall" "sensor_firewall_1" {
+  count   = var.create_acalvio_demo ? 1 : 0
   name    = "shadowplex-bcde-${random_string.depname.result}"
   project = var.host_project
   network = var.vpc
 
   source_ranges = var.source_ranges //variable
-  target_service_accounts = [ "${google_service_account.sensor_service_account.email}" ]
+  target_service_accounts = [ "${google_service_account.sensor_service_account[0].email}" ]
   allow {
     protocol = "tcp"
     ports = ["443"]
@@ -1158,23 +1171,25 @@ resource "google_compute_firewall" "sensor_firewall_1" {
 }
 //20
 resource "google_compute_firewall" "sensor_firewall_2" {
+  count   = var.create_acalvio_demo ? 1 : 0
   name    = "shadowplex-sting-${random_string.depname.result}"
   project = var.host_project
   network = var.vpc
 
-  source_service_accounts = [ "${google_service_account.sensor_service_account.email}" ]
+  source_service_accounts = [ "${google_service_account.sensor_service_account[0].email}" ]
   allow {
     protocol = "all"
   }
 }
 //21
 resource "google_compute_firewall" "sensor_firewall_3" {
+  count   = var.create_acalvio_demo ? 1 : 0
   name    = "shadowplex-vxlan-${random_string.depname.result}"
   project = var.host_project
   network = var.vpc
 
-  source_service_accounts = [ "${google_service_account.nano_sensor_service_account.email}" ]
-  target_service_accounts = [ "${google_service_account.sensor_service_account.email}" ]
+  source_service_accounts = [ "${google_service_account.nano_sensor_service_account[0].email}" ]
+  target_service_accounts = [ "${google_service_account.sensor_service_account[0].email}" ]
   allow {
     protocol = "udp"
     ports = ["4789"]
@@ -1226,7 +1241,6 @@ resource "google_project_service" "enable_securitycenter" {
   disable_on_destroy = false
   count = "0"
   //count = "${var.enable_securitycenter == "No" ? 0 : 1}"
-
 }
 //7
 resource "google_project_service" "enable_cloudresourcemanager" {
@@ -1243,6 +1257,7 @@ resource "google_project_service" "enable_cloudresourcemanager" {
 //23
 
 resource "google_org_policy_policy" "disable_shielded_vm" {
+  count  = var.create_acalvio_demo ? 1 : 0
   name   = "projects/${var.deception_project}/policies/compute.requireShieldedVm"
   parent = "projects/${var.deception_project}"
 
@@ -1253,6 +1268,7 @@ resource "google_org_policy_policy" "disable_shielded_vm" {
 }
 
 resource "google_org_policy_policy" "update_trusted_projects" {
+  count  = var.create_acalvio_demo ? 1 : 0
   name   = "projects/${var.deception_project}/policies/compute.trustedImageProjects"
   parent = "projects/${var.deception_project}"
 
@@ -1269,11 +1285,12 @@ resource "google_org_policy_policy" "update_trusted_projects" {
 
 # wait after disabling org policies
 resource "time_sleep" "wait_disable_org_policies" {
-  depends_on       = [google_org_policy_policy.disable_shielded_vm, google_org_policy_policy.update_trusted_projects]
+  depends_on       = [google_org_policy_policy.disable_shielded_vm[0], google_org_policy_policy.update_trusted_projects[0]]
   create_duration  = "60s"
 }
 
 resource "google_compute_instance" "sensor_vm" {
+  count        = var.create_acalvio_demo ? 1 : 0
   name         = "sensor-${random_string.depname.result}"
   machine_type = "e2-standard-2"
   zone         = var.zonename
@@ -1288,8 +1305,8 @@ resource "google_compute_instance" "sensor_vm" {
           "adc_lb_address" = var.adc_lb_address //local
           "spa_server" = var.adc_lb_address //local
           "sensor_type" = "vpc"
-          "sensor_svc_acct" = google_service_account.sensor_service_account.email
-          "nano_svc_acct" = google_service_account.nano_sensor_service_account.email
+          "sensor_svc_acct" = google_service_account.sensor_service_account[0].email
+          "nano_svc_acct" = google_service_account.nano_sensor_service_account[0].email
           "deception_project" =  var.deception_project//input
           "host_project" = var.host_project//input
           "image_project" = var.image_project//local
@@ -1311,7 +1328,7 @@ resource "google_compute_instance" "sensor_vm" {
   network_interface {
     subnetwork = data.google_compute_subnetwork.my-subnetwork.self_link
     access_config {
-      nat_ip = google_compute_address.static_ip_address.address
+      nat_ip = google_compute_address.static_ip_address[0].address
     }
     alias_ip_range {
       ip_cidr_range = "/32"
@@ -1319,7 +1336,7 @@ resource "google_compute_instance" "sensor_vm" {
   }
 
   service_account {
-    email  = google_service_account.sensor_service_account.email
+    email  = google_service_account.sensor_service_account[0].email
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 
@@ -1328,28 +1345,28 @@ resource "google_compute_instance" "sensor_vm" {
 //24
 resource "null_resource" "postdeploy" {
   depends_on = [
-    google_compute_instance.sensor_vm
+    google_compute_instance.sensor_vm[0]
   ]
   /*provisioner "local-exec" {
     command = <<-EOT
-      "postdeploy.py --adc_url_hash ${var.adc_url_hash} --session_id ${var.session_id} --sensor_service_account ${google_service_account.sensor_service_account.email} --project_service_account  ${var.dep_service_account} --adc_lb_address ${var.adc_lb_address}"
+      "postdeploy.py --adc_url_hash ${var.adc_url_hash} --session_id ${var.session_id} --sensor_service_account ${google_service_account.sensor_service_account[0].email} --project_service_account  ${var.dep_service_account} --adc_lb_address ${var.adc_lb_address}"
     EOT
     interpreter = ["python3", "-m"]
   }*/
 }
 
 resource "google_scc_source" "custom_source" {
-   count        = var.configure_cscc ? 1 : 0
-   display_name = "Acalvio ShadowPlex-${random_string.depname.result}"
-   organization = var.organization
-   description  = "My custom Cloud Security Command Center Finding Source"
- }
+  count        = var.configure_cscc ? 1 : 0
+  display_name = "Acalvio ShadowPlex-${random_string.depname.result}"
+  organization = var.organization
+  description  = "My custom Cloud Security Command Center Finding Source"
+}
 
 resource "google_project_iam_member" "sensor_iam7" {
-   count      = var.is_shared_vpc ? 1 : 0
-   project    = var.host_project
-   role       = "roles/compute.networkUser"
-   member     = format("serviceAccount:%s", google_service_account.sensor_service_account.email)
+  count      = var.is_shared_vpc ? 1 : 0
+  project    = var.host_project
+  role       = "roles/compute.networkUser"
+  member     = format("serviceAccount:%s", google_service_account.sensor_service_account[0].email)
 }
 
 ######################################################
