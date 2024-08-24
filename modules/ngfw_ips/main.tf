@@ -7,7 +7,7 @@ resource "google_network_security_security_profile" "ips_security_profile" {
 
 resource "google_network_security_security_profile_group" "ips_security_profile_group" {
   name                      = "ips-security-profile-group"
-  parent                    = "organizations/123456789"
+  parent                    = "organizations/${var.org_id}"
   description               = "default ips security profile group"
   threat_prevention_profile = google_network_security_security_profile.ips_security_profile.id
 }
@@ -23,7 +23,7 @@ resource "google_network_security_firewall_endpoint_association" "ips_endpoint_a
   name              = "ips-endpoint-association"
   network           = var.vpc_network
   location          = "${var.subnetwork_region}-c"
-  firewall_endpoint = google_network_security_firewall_endpoint.ips_endpoint.id
+  firewall_endpoint = google_network_security_firewall_endpoint.ips_endpoint.self_link
 }
 
 resource "google_compute_network_firewall_policy" "ips_ngfw_policy" {
@@ -34,7 +34,7 @@ resource "google_compute_network_firewall_policy" "ips_ngfw_policy" {
 
 resource "google_compute_network_firewall_policy_association" "ips_ngfw_policy_association" {
   name              = "ips-ngfw-policy-association"
-  project           =  var.project_id
+  project           = var.project_id
   attachment_target = var.vpc_network
   firewall_policy   =  google_compute_network_firewall_policy.ips_ngfw_policy.id
 }
