@@ -35,11 +35,12 @@ output "_3_ids_iap_ssh_attacker_server" {
 output "_4_ids_sample_attack_command" {
   value = module.cloud_ids._4_ids_sample_attack_command
 }
-*/
+
 output "sensor_sa" {
-  value = google_service_account.sensor_service_account.account_id
+  value = google_service_account.sensor_service_account[0].account_id
 }
 
 output "subnetwork_id" {
   value = data.google_compute_subnetwork.my-subnetwork.self_link
 }
+*/

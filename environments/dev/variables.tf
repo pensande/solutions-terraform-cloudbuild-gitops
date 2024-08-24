@@ -80,6 +80,12 @@ variable "cc_image_digest" {
   description   = "Image Digest of the confidential space demo container"
 }
 
+variable "create_acalvio_demo" {
+  description   = "If set to true, it will create the acalvio demo"
+  type          = bool
+  default       = false
+}
+
 variable "adc_url_hash" {
   description = "adc_url_hash"
 }
