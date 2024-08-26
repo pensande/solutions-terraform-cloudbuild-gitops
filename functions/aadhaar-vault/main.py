@@ -10,7 +10,8 @@ dlp_client = dlp.DlpServiceClient()
 KMS_KEY       = os.environ.get('KMS_KEY')
 WRAPPED_KEY   = os.environ.get('WRAPPED_KEY')
 PROJECT_NAME  = os.environ.get('PROJECT_NAME')
-parent        = f"projects/{PROJECT_NAME}"
+REGION_NAME   = os.environ.get('REGION_NAME')
+parent        = f"projects/{PROJECT_NAME}/locations/{REGION_NAME}"
 
 def aadhaar_vault(request):
   try:
