@@ -17,7 +17,7 @@ resource "google_storage_bucket_object" "cf_source_zip" {
 
 resource "google_cloudfunctions_function" "function" {
   project     = var.project
-  region      = "us-central1"
+  region      = var.region
   name        = var.function-name
   description = var.function-desc
   runtime     = "python39"
