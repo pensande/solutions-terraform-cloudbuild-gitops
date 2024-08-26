@@ -207,3 +207,7 @@ variable "create_aadhaar_vault_demo" {
   type          = bool
   default       = false
 }
+
+variable "aadhaar_vault_region" {
+  type          = string
+}

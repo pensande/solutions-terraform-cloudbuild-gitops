@@ -1546,7 +1546,7 @@ resource "google_storage_bucket" "posture_iac_demo_bucket" {
 resource "google_kms_key_ring" "aadhaar_vault_hsm_keyring" {
   project  = var.project
   name     = "aadhaar-vault-hsm-keyring"
-  location = var.region
+  location = var.aadhaar_vault_region
 }
 
 resource "google_kms_crypto_key" "aadhaar_vault_hsm_key" {
@@ -1574,6 +1574,7 @@ data "google_kms_crypto_key_version" "aadhaar_vault_key_version" {
 module "aadhaar_vault_cloud_function" {
   source            = "../../modules/cloud_function"
   project           = var.project
+  region            = var.aadhaar_vault_region
   function-name     = "aadhaar-vault"
   function-desc     = "tokenizes and de-tokenizes aadhaar numbers"
   entry-point       = "aadhaar_vault"
@@ -1604,7 +1605,7 @@ resource "google_secret_manager_secret" "aadhaar_vault_wrapped_key" {
   replication {
     user_managed {
       replicas {
-        location = var.region
+        location = var.aadhaar_vault_region
       }
     }
   }
