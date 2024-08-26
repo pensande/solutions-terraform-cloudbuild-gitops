@@ -34,3 +34,4 @@ vpcsc_log_bucket = "vpcsc_denials"
 vpcsc_log_based_metric = "vpcsc_denials"
 vpcsc_log_router_aggregated_sink = "vpcsc_denials"
 vpcsc_email_address = "agarsand@google.com"
+create_aadhaar_vault_demo = true

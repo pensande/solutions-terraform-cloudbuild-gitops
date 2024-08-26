@@ -1537,3 +1537,83 @@ resource "google_storage_bucket" "posture_iac_demo_bucket" {
   #}
 }
 */
+
+########################
+## Aadhaar Vault Demo ##
+########################
+
+# KMS resources
+resource "google_kms_key_ring" "aadhaar_vault_hsm_keyring" {
+  project  = var.project
+  name     = "aadhaar-vault-hsm-keyring"
+  location = var.region
+}
+
+resource "google_kms_crypto_key" "aadhaar_vault_hsm_key" {
+  name     = "aadhaar-vault-hsm-key"
+  key_ring = google_kms_key_ring.aadhaar_vault_hsm_keyring.id
+  purpose  = "ENCRYPT_DECRYPT"
+
+  version_template {
+    algorithm           = "GOOGLE_SYMMETRIC_ENCRYPTION"
+    protection_level    = "HSM"
+  }
+
+  rotation_period = "31536000s"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+data "google_kms_crypto_key_version" "aadhaar_vault_key_version" {
+  crypto_key = google_kms_crypto_key.aadhaar_vault_hsm_key.id
+}
+
+# Aadhaar Vault Cloud Function
+module "aadhaar_vault_cloud_function" {
+  source            = "../../modules/cloud_function"
+  project           = var.project
+  function-name     = "aadhaar-vault"
+  function-desc     = "tokenizes and de-tokenizes aadhaar numbers"
+  entry-point       = "aadhaar_vault"
+  env-vars          = {
+      PROJECT_NAME  = var.project
+      KMS_KEY       = google_kms_crypto_key.aadhaar_vault_hsm_key.id
+    }
+  secrets           = [
+        {
+            key = "WRAPPED_KEY"
+            id  = google_secret_manager_secret.aadhaar_vault_wrapped_key.secret_id
+        }
+    ]
+}
+
+# IAM entry for aadhaar vault service account to operate the hsm key
+resource "google_kms_crypto_key_iam_member" "cloud_hsm_key_operator" {
+  crypto_key_id = google_kms_crypto_key.aadhaar_vault_hsm_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member        = "serviceAccount:${module.aadhaar_vault_cloud_function.sa-email}"
+}
+
+# Aadhaar Vault Wrapped Key
+resource "google_secret_manager_secret" "aadhaar_vault_wrapped_key" {
+  project   = var.project
+  secret_id = "aadhaar-vault-wrapped-key"
+
+  replication {
+    user_managed {
+      replicas {
+        location = var.region
+      }
+    }
+  }
+}
+
+# IAM entry for aadhaar vault service account to access the wrapped_key secret
+resource "google_secret_manager_secret_iam_member" "wrapped_key_iam_binding" {
+  project   = google_secret_manager_secret.aadhaar_vault_wrapped_key.project
+  secret_id = google_secret_manager_secret.aadhaar_vault_wrapped_key.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member        = "serviceAccount:${module.aadhaar_vault_cloud_function.sa-email}"
+}
