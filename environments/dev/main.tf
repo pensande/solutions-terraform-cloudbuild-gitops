@@ -1580,6 +1580,7 @@ module "aadhaar_vault_cloud_function" {
   entry-point       = "aadhaar_vault"
   env-vars          = {
       PROJECT_NAME  = var.project
+      REGION_NAME   = var.aadhaar_vault_region
       KMS_KEY       = google_kms_crypto_key.aadhaar_vault_hsm_key.id
     }
   secrets           = [
