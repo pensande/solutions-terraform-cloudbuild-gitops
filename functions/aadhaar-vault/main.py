@@ -17,15 +17,15 @@ def aadhaar_vault(request):
   try:
     request_json  = request.get_json()
     mode          = request_json['mode']
-    strings       = request_json['strings']
+    content       = request_json['content']
     if mode == "tokenize":
-        return tokenize(strings)
+      return tokenize(content)
     elif mode == "detokenize":
-        return detokenize(strings)
+      return detokenize(content)
   except Exception as e:
     return jsonify( { "errorMessage": str(e) } ), 400
 
-def tokenize(strings):
+def tokenize(content):
   # The infoTypes of information to match
   INFO_TYPES = ['US_SOCIAL_SECURITY_NUMBER']
   inspect_config = {"info_types": [{"name": info_type} for info_type in INFO_TYPES]}
@@ -52,20 +52,17 @@ def tokenize(strings):
     }
   }
 
-  return_value = []
-  for string in strings:
-    response_text = dlp_client.deidentify_content(
-      request={
-          "parent": parent,
-          "deidentify_config": deidentify_config,
-          "inspect_config": inspect_config,
-          "item": {"value": string[0]},
-      }
-    )
-    return_value.append(response_text.item.value)
-  return jsonify( { "replies":  return_value } )
+  response_text = dlp_client.deidentify_content(
+    request={
+        "parent": parent,
+        "deidentify_config": deidentify_config,
+        "inspect_config": inspect_config,
+        "item": {"value": content},
+    }
+  )
+  return jsonify( { "dlp_response":  response_text.item.value } )
 
-def detokenize(strings):
+def detokenize(content):
   # The infoTypes of information to match
   inspect_config = {"custom_info_types": [{"info_type": {"name": "TOKENIZED_VALUE"},"surrogate_type": {}}]}
   reidentify_config = {
@@ -91,15 +88,12 @@ def detokenize(strings):
     }
   }
 
-  return_value = []
-  for string in strings:
-    response_text = dlp_client.reidentify_content(
-      request={
-          "parent": parent,
-          "reidentify_config": reidentify_config,
-          "inspect_config": inspect_config,
-          "item": {"value": string[0]},
-      }
-    )
-    return_value.append(response_text.item.value)
-  return jsonify( { "replies":  return_value } )
+  response_text = dlp_client.reidentify_content(
+    request={
+        "parent": parent,
+        "reidentify_config": reidentify_config,
+        "inspect_config": inspect_config,
+        "item": {"value": content},
+    }
+  )
+  return jsonify( { "dlp_response":  response_text.item.value } )
