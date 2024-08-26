@@ -27,7 +27,7 @@ def aadhaar_vault(request):
 
 def tokenize(content):
   # The infoTypes of information to match
-  INFO_TYPES = ['US_SOCIAL_SECURITY_NUMBER']
+  INFO_TYPES = ['INDIA_AADHAAR_INDIVIDUAL']
   inspect_config = {"info_types": [{"name": info_type} for info_type in INFO_TYPES]}
   deidentify_config = {
     "info_type_transformations": {
