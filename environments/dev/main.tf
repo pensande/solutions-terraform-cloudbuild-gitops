@@ -1590,7 +1590,7 @@ module "aadhaar_vault_cloud_function" {
     ]
 }
 
-# IAM entry for aadhaar vault service account to operate the hsm key
+# IAM entry for the aadhaar vault service account to operate the hsm key
 resource "google_kms_crypto_key_iam_member" "cloud_hsm_key_operator" {
   crypto_key_id = google_kms_crypto_key.aadhaar_vault_hsm_key.id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
@@ -1611,10 +1611,17 @@ resource "google_secret_manager_secret" "aadhaar_vault_wrapped_key" {
   }
 }
 
-# IAM entry for aadhaar vault service account to access the wrapped_key secret
+# IAM entry for the aadhaar vault service account to access the wrapped_key secret
 resource "google_secret_manager_secret_iam_member" "wrapped_key_iam_binding" {
   project   = google_secret_manager_secret.aadhaar_vault_wrapped_key.project
   secret_id = google_secret_manager_secret.aadhaar_vault_wrapped_key.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member        = "serviceAccount:${module.aadhaar_vault_cloud_function.sa-email}"
+}
+
+# IAM entry for the aadhaar vault service account to use the DLP service
+resource "google_project_iam_member" "project_dlp_user_aadhaar_vault" {
+  project = var.project
+  role    = "roles/dlp.user"
+  member  = "serviceAccount:${module.aadhaar_vault_cloud_function.sa-email}"
 }
