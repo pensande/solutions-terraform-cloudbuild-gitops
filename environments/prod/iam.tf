@@ -64,6 +64,13 @@ resource "google_project_iam_member" "clouddeploy_job_runner" {
   member    = "serviceAccount:${google_service_account.clouddeploy_execution_sa.email}"
 }
 
+# IAM membership for Cloud Deploy Execution SA deploy to Run
+resource "google_project_iam_member" "clouddeploy_gke_dev" {
+  project  = var.project
+  role     = "roles/run.developer"
+  member   = "serviceAccount:${google_service_account.clouddeploy_execution_sa.email}"
+}
+
 # IAM membership for Binary Authorization service agents in GKE projects on attestors
 resource "google_project_service_identity" "binauthz_service_agent" {
   provider  = google-beta

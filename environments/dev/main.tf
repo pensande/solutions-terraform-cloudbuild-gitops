@@ -1626,3 +1626,38 @@ resource "google_project_iam_member" "project_dlp_user_aadhaar_vault" {
   role    = "roles/dlp.user"
   member  = "serviceAccount:${module.aadhaar_vault_cloud_function.sa-email}"
 }
+
+data "google_service_account" "clouddeploy_execution_sa" {
+  project      = var.project
+  account_id   = "clouddeploy-execution-sa"
+}
+
+resource "google_clouddeploy_target" "aadhaar_vault_deploy_target" {
+  name              = "aadhaar-vault-deploy-target"
+  description       = "Target for aadhaar vault delivery pipeline"
+  project           = var.project
+  location          = var.aadhaar_vault_region
+  require_approval  = false
+
+  run {
+    location = "projects/${var.project}/locations/${var.aadhaar_vault_region}"
+  }
+
+  execution_configs {
+    usages          = ["RENDER", "DEPLOY"]
+    service_account = google_service_account.clouddeploy_execution_sa.email
+  }
+}
+
+resource "google_clouddeploy_delivery_pipeline" "aadhaar_vault_deploy_pipeline" {
+  name        = "aadhaar-vault-deploy-pipeline"
+  description = "Pipeline for aadhaar vault demo app"
+  project     = var.project
+  location    = var.aadhaar_vault_region
+
+  serial_pipeline {
+    stages {
+      target_id = google_clouddeploy_target.aadhaar_vault_deploy_target.name
+    }
+  }
+}
