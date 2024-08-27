@@ -1645,7 +1645,7 @@ resource "google_clouddeploy_target" "aadhaar_vault_deploy_target" {
 
   execution_configs {
     usages          = ["RENDER", "DEPLOY"]
-    service_account = google_service_account.clouddeploy_execution_sa.email
+    service_account = data.google_service_account.clouddeploy_execution_sa.email
   }
 }
 
