@@ -1627,38 +1627,44 @@ resource "google_project_iam_member" "project_dlp_user_aadhaar_vault" {
   member  = "serviceAccount:${module.aadhaar_vault_cloud_function.sa-email}"
 }
 
-data "google_service_account" "clouddeploy_execution_sa" {
-  project      = var.project
-  account_id   = "clouddeploy-execution-sa"
-}
+# Aadhaar Vault Cloud Run service
+resource "google_cloud_run_service" "aadhaar_vault_run_service" {
+  count     = var.create_aadhaar_vault_demo ? 1 : 0
+  name      = "aadhaar-vault-demo"
+  location  = var.aadhaar_vault_region
 
-resource "google_clouddeploy_target" "aadhaar_vault_deploy_target" {
-  name              = "aadhaar-vault-deploy-target"
-  description       = "Target for aadhaar vault delivery pipeline"
-  project           = var.project
-  location          = var.aadhaar_vault_region
-  require_approval  = false
-
-  run {
-    location = "projects/${var.project}/locations/${var.aadhaar_vault_region}"
-  }
-
-  execution_configs {
-    usages          = ["RENDER", "DEPLOY"]
-    service_account = data.google_service_account.clouddeploy_execution_sa.email
-  }
-}
-
-resource "google_clouddeploy_delivery_pipeline" "aadhaar_vault_deploy_pipeline" {
-  name        = "aadhaar-vault-deploy-pipeline"
-  description = "Pipeline for aadhaar vault demo app"
-  project     = var.project
-  location    = var.aadhaar_vault_region
-
-  serial_pipeline {
-    stages {
-      profiles  = ["demo"]
-      target_id = google_clouddeploy_target.aadhaar_vault_deploy_target.name
+  template {
+    spec {
+      containers {
+        image   = "us-central1-docker.pkg.dev/secops-project-348011/binauthz-demo-repo/aadhaar-vault-demo@sha256:dfafa5546b03a47ecc2e31c0c22f205c3129c9a55e16a2d8c5383ef56a36cd9f"
+        ports {
+          container_port = 80
+        }
+      }
+      service_account_name = module.aadhaar_vault_cloud_function.sa-email
     }
+    metadata {
+      annotations = {
+        "autoscaling.knative.dev/maxScale"      = "2"
+        "run.googleapis.com/client-name"        = "terraform"
+      }
+    }
+  }
+
+  metadata {
+    annotations = {
+      "run.googleapis.com/ingress"            = "all"
+    }
+  }
+
+  traffic {
+    percent         = 100
+    latest_revision = true
+  }
+
+  lifecycle {
+    ignore_changes = [
+      metadata[0].annotations,
+    ]
   }
 }
