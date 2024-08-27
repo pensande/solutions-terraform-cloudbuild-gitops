@@ -201,3 +201,13 @@ variable "vpcsc_email_address" {
   type        = string
   description = "Email address to receive notifications from alerting"
 }
+
+variable "create_aadhaar_vault_demo" {
+  description   = "If set to true, it will create the aadhaar vault demo"
+  type          = bool
+  default       = false
+}
+
+variable "aadhaar_vault_region" {
+  type          = string
+}

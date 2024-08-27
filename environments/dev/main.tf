@@ -1537,3 +1537,127 @@ resource "google_storage_bucket" "posture_iac_demo_bucket" {
   #}
 }
 */
+
+########################
+## Aadhaar Vault Demo ##
+########################
+
+# KMS resources
+resource "google_kms_key_ring" "aadhaar_vault_hsm_keyring" {
+  project  = var.project
+  name     = "aadhaar-vault-hsm-keyring"
+  location = var.aadhaar_vault_region
+}
+
+resource "google_kms_crypto_key" "aadhaar_vault_hsm_key" {
+  name     = "aadhaar-vault-hsm-key"
+  key_ring = google_kms_key_ring.aadhaar_vault_hsm_keyring.id
+  purpose  = "ENCRYPT_DECRYPT"
+
+  version_template {
+    algorithm           = "GOOGLE_SYMMETRIC_ENCRYPTION"
+    protection_level    = "HSM"
+  }
+
+  rotation_period = "31536000s"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+data "google_kms_crypto_key_version" "aadhaar_vault_key_version" {
+  crypto_key = google_kms_crypto_key.aadhaar_vault_hsm_key.id
+}
+
+# Aadhaar Vault Cloud Function
+module "aadhaar_vault_cloud_function" {
+  source            = "../../modules/cloud_function"
+  project           = var.project
+  region            = var.aadhaar_vault_region
+  function-name     = "aadhaar-vault"
+  function-desc     = "tokenizes and de-tokenizes aadhaar numbers"
+  entry-point       = "aadhaar_vault"
+  env-vars          = {
+      PROJECT_NAME  = var.project
+      REGION_NAME   = var.aadhaar_vault_region
+      KMS_KEY       = google_kms_crypto_key.aadhaar_vault_hsm_key.id
+    }
+  secrets           = [
+        {
+            key = "WRAPPED_KEY"
+            id  = google_secret_manager_secret.aadhaar_vault_wrapped_key.secret_id
+        }
+    ]
+}
+
+# IAM entry for the aadhaar vault service account to operate the hsm key
+resource "google_kms_crypto_key_iam_member" "cloud_hsm_key_operator" {
+  crypto_key_id = google_kms_crypto_key.aadhaar_vault_hsm_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member        = "serviceAccount:${module.aadhaar_vault_cloud_function.sa-email}"
+}
+
+# Aadhaar Vault Wrapped Key
+resource "google_secret_manager_secret" "aadhaar_vault_wrapped_key" {
+  project   = var.project
+  secret_id = "aadhaar-vault-wrapped-key"
+
+  replication {
+    user_managed {
+      replicas {
+        location = var.aadhaar_vault_region
+      }
+    }
+  }
+}
+
+# IAM entry for the aadhaar vault service account to access the wrapped_key secret
+resource "google_secret_manager_secret_iam_member" "wrapped_key_iam_binding" {
+  project   = google_secret_manager_secret.aadhaar_vault_wrapped_key.project
+  secret_id = google_secret_manager_secret.aadhaar_vault_wrapped_key.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member        = "serviceAccount:${module.aadhaar_vault_cloud_function.sa-email}"
+}
+
+# IAM entry for the aadhaar vault service account to use the DLP service
+resource "google_project_iam_member" "project_dlp_user_aadhaar_vault" {
+  project = var.project
+  role    = "roles/dlp.user"
+  member  = "serviceAccount:${module.aadhaar_vault_cloud_function.sa-email}"
+}
+
+data "google_service_account" "clouddeploy_execution_sa" {
+  project      = var.project
+  account_id   = "clouddeploy-execution-sa"
+}
+
+resource "google_clouddeploy_target" "aadhaar_vault_deploy_target" {
+  name              = "aadhaar-vault-deploy-target"
+  description       = "Target for aadhaar vault delivery pipeline"
+  project           = var.project
+  location          = var.aadhaar_vault_region
+  require_approval  = false
+
+  run {
+    location = "projects/${var.project}/locations/${var.aadhaar_vault_region}"
+  }
+
+  execution_configs {
+    usages          = ["RENDER", "DEPLOY"]
+    service_account = data.google_service_account.clouddeploy_execution_sa.email
+  }
+}
+
+resource "google_clouddeploy_delivery_pipeline" "aadhaar_vault_deploy_pipeline" {
+  name        = "aadhaar-vault-deploy-pipeline"
+  description = "Pipeline for aadhaar vault demo app"
+  project     = var.project
+  location    = var.aadhaar_vault_region
+
+  serial_pipeline {
+    stages {
+      target_id = google_clouddeploy_target.aadhaar_vault_deploy_target.name
+    }
+  }
+}

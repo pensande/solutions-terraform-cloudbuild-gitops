@@ -24,3 +24,9 @@ variable "triggers" {
         }
     ))
 }
+
+variable "region" {
+  type        = string
+  description = "Deployment region for the function"
+  default     = "us-central1"
+}
