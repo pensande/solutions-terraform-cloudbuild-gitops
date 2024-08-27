@@ -1657,6 +1657,7 @@ resource "google_clouddeploy_delivery_pipeline" "aadhaar_vault_deploy_pipeline" 
 
   serial_pipeline {
     stages {
+      profiles  = ["demo"]
       target_id = google_clouddeploy_target.aadhaar_vault_deploy_target.name
     }
   }
