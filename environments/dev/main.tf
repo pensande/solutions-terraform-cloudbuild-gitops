@@ -1623,12 +1623,21 @@ resource "google_compute_subnetwork" "aadhaar_vault_proxy_subnet" {
   ip_cidr_range = "10.${local.env == "dev" ? 10 : 20}.5.0/24"
 }
 
+# Backend subnet
+resource "google_compute_subnetwork" "aadhaar_vault_backend_subnet" {
+  count         = var.create_aadhaar_vault_demo ? 1 : 0
+  name          = "aadhaar-vault-backend-subnet"
+  network       = module.vpc.id
+  region        = var.aadhaar_vault_region
+  ip_cidr_range = "10.${local.env == "dev" ? 10 : 20}.6.0/24"
+}
+
 # forwarding rule
 resource "google_compute_forwarding_rule" "aadhaar_vault_forwarding_rule" {
   count                 = var.create_aadhaar_vault_demo ? 1 : 0
   name                  = "aadhaar-vault-forwarding-rule"
   network               = module.vpc.id
-  subnetwork            = module.vpc.subnet
+  subnetwork            = google_compute_subnetwork.aadhaar_vault_backend_subnet[0].id
   region                = var.aadhaar_vault_region
   ip_protocol           = "TCP"
   load_balancing_scheme = "INTERNAL_MANAGED"
