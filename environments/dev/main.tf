@@ -1682,7 +1682,7 @@ resource "google_compute_forwarding_rule" "aadhaar_vault_forwarding_rule" {
   ip_protocol           = "TCP"
   load_balancing_scheme = "INTERNAL_MANAGED"
   port_range            = "443"
-  target                = google_compute_region_target_http_proxy.aadhaar_vault_target_https_proxy[0].id
+  target                = google_compute_region_target_https_proxy.aadhaar_vault_target_https_proxy[0].id
   network_tier          = "PREMIUM"
 
   depends_on            = [google_compute_subnetwork.aadhaar_vault_proxy_subnet[0]]
