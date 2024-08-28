@@ -1725,7 +1725,7 @@ resource "google_cloud_run_service" "aadhaar_vault_run_service" {
 
   metadata {
     annotations = {
-      "run.googleapis.com/ingress"            = "all"
+      "run.googleapis.com/ingress"            = "internal"
     }
   }
 
