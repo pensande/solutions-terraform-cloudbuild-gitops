@@ -1623,7 +1623,7 @@ resource "google_compute_subnetwork" "aadhaar_vault_proxy_subnet" {
   ip_cidr_range = "10.${local.env == "dev" ? 10 : 20}.5.0/24"
 }
 
-# Backend subnet
+# backend subnet
 resource "google_compute_subnetwork" "aadhaar_vault_backend_subnet" {
   count         = var.create_aadhaar_vault_demo ? 1 : 0
   name          = "aadhaar-vault-backend-subnet"
@@ -1739,4 +1739,50 @@ resource "google_cloud_run_service" "aadhaar_vault_run_service" {
       metadata[0].annotations,
     ]
   }
+}
+
+# psc producer / nat subnet
+resource "google_compute_subnetwork" "aadhaar_vault_psc_producer_subnet" {
+  count         = var.create_aadhaar_vault_demo ? 1 : 0
+  name          = "aadhaar-vault-psc-producer-subnet"
+  network       = module.vpc.id
+  region        = var.aadhaar_vault_region
+  purpose       = "PRIVATE_SERVICE_CONNECT"
+  ip_cidr_range = "10.${local.env == "dev" ? 10 : 20}.7.0/24"
+}
+
+resource "google_compute_service_attachment" "aadhaar_vault_psc_service_attachment" {
+  name        = "aadhaar-vault-psc-service-attachment"
+  region      = var.aadhaar_vault_region
+  description = "Service attachment for Aadhaar Vault"
+
+  enable_proxy_protocol    = false
+  connection_preference    = "ACCEPT_AUTOMATIC"
+  nat_subnets              = [google_compute_subnetwork.aadhaar_vault_psc_producer_subnet[0].id]
+  target_service           = google_compute_forwarding_rule.aadhaar_vault_forwarding_rule[0].id
+}
+
+data "google_compute_subnetwork" "aadhaar_vault_psc_consumer_subnet" {
+  name          = var.subnet_name
+  project       = var.host_project
+  region        = var.subnet_region
+} 
+
+resource "google_compute_address" "aadhaar_vault_psc_address" {
+  count         = var.create_aadhaar_vault_demo ? 1 : 0
+  name          = "aadhaar-vault-psc-address"
+  address_type  = "INTERNAL"
+  subnetwork    = data.google_compute_subnetwork.aadhaar_vault_psc_consumer_subnet.self_link
+  project       = var.host_project
+  region        = var.subnet_region
+}
+
+resource "google_compute_forwarding_rule" "aadhaar_vault_psc_forwarding_rule" {
+  count         = var.create_aadhaar_vault_demo ? 1 : 0
+  name          = "aadhaar-vault-psc-forwarding-rule"
+  project       = var.host_project
+  region        = var.subnet_region
+  ip_address    = google_compute_address.aadhaar_vault_psc_address[0].id
+  target        = google_compute_service_attachment.aadhaar_vault_psc_service_attachment[0].id
+  network       = var.vpc
 }
