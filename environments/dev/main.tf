@@ -1771,7 +1771,7 @@ data "google_compute_subnetwork" "aadhaar_vault_psc_consumer_subnet" {
 
 resource "google_compute_address" "aadhaar_vault_psc_consumer_address" {
   count         = var.create_aadhaar_vault_demo ? 1 : 0
-  name          = "aadhaar-vault-psc-address"
+  name          = "aadhaar-vault-psc-consumer-address"
   address_type  = "INTERNAL"
   subnetwork    = data.google_compute_subnetwork.aadhaar_vault_psc_consumer_subnet.self_link
   project       = var.host_project
@@ -1780,7 +1780,7 @@ resource "google_compute_address" "aadhaar_vault_psc_consumer_address" {
 
 resource "google_compute_forwarding_rule" "aadhaar_vault_psc_consumer_forwarding_rule" {
   count                   = var.create_aadhaar_vault_demo ? 1 : 0
-  name                    = "aadhaar-vault-psc-forwarding-rule"
+  name                    = "aadhaar-vault-psc-consumer-forwarding-rule"
   project                 = var.host_project
   region                  = var.subnet_region
   load_balancing_scheme   = ""
