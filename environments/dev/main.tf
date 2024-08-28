@@ -1611,6 +1611,47 @@ resource "google_project_iam_member" "project_dlp_user_aadhaar_vault" {
   member  = "serviceAccount:${google_service_account.aadhaar_vault_service_account.email}"
 }
 
+# Self-signed regional ssl certificate for aadhaar vault
+resource "tls_private_key" "aadhaar_vault_tls_private_key" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
+
+resource "tls_self_signed_cert" "aadhaar_vault_tls_cert" {
+  private_key_pem = tls_private_key.aadhaar_vault_tls_private_key.private_key_pem
+
+  # Certificate expires after 12 hours.
+  validity_period_hours = 12
+
+  # Generate a new certificate if Terraform is run within three
+  # hours of the certificate's expiration time.
+  early_renewal_hours = 3
+
+  # Reasonable set of uses for a server SSL certificate.
+  allowed_uses = [
+    "key_encipherment",
+    "digital_signature",
+    "server_auth",
+  ]
+
+  dns_names = ["aadhaarvault.com"]
+
+  subject {
+    common_name  = "aadhaarvault.com"
+    organization = "Aadhaar Vault on Google Cloud, Inc"
+  }
+}
+
+resource "google_compute_region_ssl_certificate" "aadhaar_vault_ssl_certificate" {
+  name_prefix = "aadhaar-vault-ssl-cert-"
+  private_key = tls_private_key.aadhaar_vault_tls_private_key.private_key_pem
+  certificate = tls_self_signed_cert.aadhaar_vault_tls_cert.cert_pem
+  region      = var.aadhaar_vault_region
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
 # proxy-only subnet
 resource "google_compute_subnetwork" "aadhaar_vault_proxy_subnet" {
   count         = var.create_aadhaar_vault_demo ? 1 : 0
@@ -1640,20 +1681,21 @@ resource "google_compute_forwarding_rule" "aadhaar_vault_forwarding_rule" {
   region                = var.aadhaar_vault_region
   ip_protocol           = "TCP"
   load_balancing_scheme = "INTERNAL_MANAGED"
-  port_range            = "80"
-  target                = google_compute_region_target_http_proxy.aadhaar_vault_target_http_proxy[0].id
+  port_range            = "443"
+  target                = google_compute_region_target_https_proxy.aadhaar_vault_target_https_proxy[0].id
   network_tier          = "PREMIUM"
 
   depends_on            = [google_compute_subnetwork.aadhaar_vault_proxy_subnet[0]]
 }
 
 # HTTP target proxy
-resource "google_compute_region_target_http_proxy" "aadhaar_vault_target_http_proxy" {
+resource "google_compute_region_target_https_proxy" "aadhaar_vault_target_https_proxy" {
   count                 = var.create_aadhaar_vault_demo ? 1 : 0
-  name                  = "aadhaar-vault-target-http-proxy"
+  name                  = "aadhaar-vault-target-https-proxy"
   project               = var.project            
   region                = var.aadhaar_vault_region
   url_map               = google_compute_region_url_map.aadhaar_vault_url_map[0].id
+  ssl_certificates      = [google_compute_region_ssl_certificate.aadhaar_vault_ssl_certificate.self_link]
 }
 
 # URL map
