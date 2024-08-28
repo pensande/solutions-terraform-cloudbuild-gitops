@@ -1572,8 +1572,8 @@ data "google_kms_crypto_key_version" "aadhaar_vault_key_version" {
 
 # Service Account for Aadhaar Vault
 resource "google_service_account" "aadhaar_vault_service_account" {
-  account_id    = "sa-aadhaar_vault-demo"
-  display_name  = "sa-aadhaar_vault-demo"
+  account_id    = "sa-aadhaar-vault-demo"
+  display_name  = "sa-aadhaar-vault-demo"
 }
 
 # IAM entry for the aadhaar vault service account to operate the hsm key
