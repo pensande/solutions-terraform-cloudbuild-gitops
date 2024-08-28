@@ -1666,7 +1666,6 @@ resource "google_compute_region_backend_service" "aadhaar_vault_serverless_backe
   region                = var.aadhaar_vault_region
   load_balancing_scheme = "INTERNAL_MANAGED"
   timeout_sec           = 10
-  health_checks         = [google_compute_region_health_check.aadhaar_vault_health_check[0].id]
   backend {
     group           = google_compute_region_network_endpoint_group.aadhaar_vault_neg[0].id
     balancing_mode  = "UTILIZATION"
@@ -1674,17 +1673,6 @@ resource "google_compute_region_backend_service" "aadhaar_vault_serverless_backe
   }
   log_config {
     enable              = true
-  }
-}
-
-# health check
-resource "google_compute_region_health_check" "aadhaar_vault_health_check" {
-  count                 = var.create_aadhaar_vault_demo ? 1 : 0
-  name                  = "aadhaar-vault-hc"
-  project               = var.project            
-  region                = var.aadhaar_vault_region
-  http_health_check {
-    port_specification  = "USE_SERVING_PORT"
   }
 }
 
