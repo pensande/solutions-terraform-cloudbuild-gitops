@@ -1753,7 +1753,7 @@ resource "google_cloud_run_service" "aadhaar_vault_run_service" {
 }
 
 # Allow IAP to invoke the aadhaar vault service
-resource "google_cloud_run_service_iam_member" "run_all_users" {
+resource "google_cloud_run_service_iam_member" "aadhaar_vault_iap_users" {
   count     = var.create_aadhaar_vault_demo ? 1 : 0
   service   = google_cloud_run_service.aadhaar_vault_run_service[0].name
   location  = google_cloud_run_service.aadhaar_vault_run_service[0].location
