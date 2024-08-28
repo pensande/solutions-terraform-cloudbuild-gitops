@@ -574,7 +574,6 @@ resource "google_iap_web_backend_service_iam_member" "iap_run_sql_demo_member" {
 
 # Allow IAP to invoke the cloud run service
 resource "google_project_service_identity" "iap_sa" {
-  count     = var.create_iap_run_sql_demo ? 1 : 0
   provider  = google-beta
   project   = var.project
   service   = "iap.googleapis.com"
@@ -585,7 +584,7 @@ resource "google_cloud_run_service_iam_member" "run_all_users" {
   service   = google_cloud_run_service.iap_run_service[0].name
   location  = google_cloud_run_service.iap_run_service[0].location
   role      = "roles/run.invoker"
-  member    = "serviceAccount:${google_project_service_identity.iap_sa[0].email}"
+  member    = "serviceAccount:${google_project_service_identity.iap_sa.email}"
 }
 
 ######################################
@@ -1685,6 +1684,18 @@ resource "google_compute_region_backend_service" "aadhaar_vault_serverless_backe
   log_config {
     enable              = true
   }
+
+  iap {
+    oauth2_client_id     = google_iap_client.aadhaar_vault_iap_client[0].client_id
+    oauth2_client_secret = google_iap_client.aadhaar_vault_iap_client[0].secret
+  }
+}
+
+#oauth2 client
+resource "google_iap_client" "aadhaar_vault_iap_client" {
+  count         = var.create_aadhaar_vault_demo ? 1 : 0
+  display_name  = "Aadhaar Vault App Client"
+  brand         =  "projects/${var.project}/brands/${data.google_project.project.number}"
 }
 
 # network endpoint group
@@ -1739,6 +1750,15 @@ resource "google_cloud_run_service" "aadhaar_vault_run_service" {
       metadata[0].annotations,
     ]
   }
+}
+
+# Allow IAP to invoke the aadhaar vault service
+resource "google_cloud_run_service_iam_member" "aadhaar_vault_iap_users" {
+  count     = var.create_aadhaar_vault_demo ? 1 : 0
+  service   = google_cloud_run_service.aadhaar_vault_run_service[0].name
+  location  = google_cloud_run_service.aadhaar_vault_run_service[0].location
+  role      = "roles/run.invoker"
+  member    = "serviceAccount:${google_project_service_identity.iap_sa.email}"
 }
 
 # psc producer / nat subnet
