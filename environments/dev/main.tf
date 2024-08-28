@@ -1752,9 +1752,10 @@ resource "google_compute_subnetwork" "aadhaar_vault_psc_producer_subnet" {
 }
 
 resource "google_compute_service_attachment" "aadhaar_vault_psc_service_attachment" {
-  name        = "aadhaar-vault-psc-service-attachment"
-  region      = var.aadhaar_vault_region
-  description = "Service attachment for Aadhaar Vault"
+  count         = var.create_aadhaar_vault_demo ? 1 : 0
+  name          = "aadhaar-vault-psc-service-attachment"
+  region        = var.aadhaar_vault_region
+  description   = "Service attachment for Aadhaar Vault"
 
   enable_proxy_protocol    = false
   connection_preference    = "ACCEPT_AUTOMATIC"
