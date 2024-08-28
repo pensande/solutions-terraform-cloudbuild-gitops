@@ -1570,32 +1570,17 @@ data "google_kms_crypto_key_version" "aadhaar_vault_key_version" {
   crypto_key = google_kms_crypto_key.aadhaar_vault_hsm_key.id
 }
 
-# Aadhaar Vault Cloud Function
-module "aadhaar_vault_cloud_function" {
-  source            = "../../modules/cloud_function"
-  project           = var.project
-  region            = var.aadhaar_vault_region
-  function-name     = "aadhaar-vault"
-  function-desc     = "tokenizes and de-tokenizes aadhaar numbers"
-  entry-point       = "aadhaar_vault"
-  env-vars          = {
-      PROJECT_NAME  = var.project
-      REGION_NAME   = var.aadhaar_vault_region
-      KMS_KEY       = google_kms_crypto_key.aadhaar_vault_hsm_key.id
-    }
-  secrets           = [
-        {
-            key = "WRAPPED_KEY"
-            id  = google_secret_manager_secret.aadhaar_vault_wrapped_key.secret_id
-        }
-    ]
+# Service Account for Aadhaar Vault
+resource "google_service_account" "aadhaar_vault_service_account" {
+  account_id    = "sa-aadhaar-vault-demo"
+  display_name  = "sa-aadhaar-vault-demo"
 }
 
 # IAM entry for the aadhaar vault service account to operate the hsm key
 resource "google_kms_crypto_key_iam_member" "cloud_hsm_key_operator" {
   crypto_key_id = google_kms_crypto_key.aadhaar_vault_hsm_key.id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
-  member        = "serviceAccount:${module.aadhaar_vault_cloud_function.sa-email}"
+  member        = "serviceAccount:${google_service_account.aadhaar_vault_service_account.email}"
 }
 
 # Aadhaar Vault Wrapped Key
@@ -1617,14 +1602,102 @@ resource "google_secret_manager_secret_iam_member" "wrapped_key_iam_binding" {
   project   = google_secret_manager_secret.aadhaar_vault_wrapped_key.project
   secret_id = google_secret_manager_secret.aadhaar_vault_wrapped_key.secret_id
   role      = "roles/secretmanager.secretAccessor"
-  member        = "serviceAccount:${module.aadhaar_vault_cloud_function.sa-email}"
+  member        = "serviceAccount:${google_service_account.aadhaar_vault_service_account.email}"
 }
 
 # IAM entry for the aadhaar vault service account to use the DLP service
 resource "google_project_iam_member" "project_dlp_user_aadhaar_vault" {
   project = var.project
   role    = "roles/dlp.user"
-  member  = "serviceAccount:${module.aadhaar_vault_cloud_function.sa-email}"
+  member  = "serviceAccount:${google_service_account.aadhaar_vault_service_account.email}"
+}
+
+# proxy-only subnet
+resource "google_compute_subnetwork" "aadhaar_vault_proxy_subnet" {
+  count         = var.create_aadhaar_vault_demo ? 1 : 0
+  name          = "aadhaar-vault-proxy-subnet"
+  network       = module.vpc.id
+  region        = var.aadhaar_vault_region
+  purpose       = "REGIONAL_MANAGED_PROXY"
+  role          = "ACTIVE"
+  ip_cidr_range = "10.${local.env == "dev" ? 10 : 20}.5.0/24"
+}
+
+# forwarding rule
+resource "google_compute_forwarding_rule" "aadhaar_vault_forwarding_rule" {
+  count                 = var.create_aadhaar_vault_demo ? 1 : 0
+  name                  = "aadhaar-vault-forwarding-rule"
+  network               = module.vpc.id
+  region                = var.aadhaar_vault_region
+  ip_protocol           = "TCP"
+  load_balancing_scheme = "INTERNAL_MANAGED"
+  port_range            = "80"
+  target                = google_compute_region_target_http_proxy.aadhaar_vault_target_http_proxy[0].id
+  network_tier          = "PREMIUM"
+
+  depends_on            = [google_compute_subnetwork.aadhaar_vault_proxy_subnet[0]]
+}
+
+# HTTP target proxy
+resource "google_compute_region_target_http_proxy" "aadhaar_vault_target_http_proxy" {
+  count                 = var.create_aadhaar_vault_demo ? 1 : 0
+  name                  = "aadhaar-vault-target-http-proxy"
+  project               = var.project            
+  region                = var.aadhaar_vault_region
+  url_map               = google_compute_region_url_map.aadhaar_vault_url_map[0].id
+}
+
+# URL map
+resource "google_compute_region_url_map" "aadhaar_vault_url_map" {
+  count                 = var.create_aadhaar_vault_demo ? 1 : 0
+  name                  = "aadhaar-vault-url-map"
+  project               = var.project            
+  region                = var.aadhaar_vault_region
+  default_service       = google_compute_region_backend_service.aadhaar_vault_serverless_backend[0].id
+}
+
+# backend service
+resource "google_compute_region_backend_service" "aadhaar_vault_serverless_backend" {
+  count                 = var.create_aadhaar_vault_demo ? 1 : 0
+  project               = var.project            
+  name                  = "aadhaar-vault-serverless-backend"
+  port_name             = "http"
+  protocol              = "HTTP"
+  region                = var.aadhaar_vault_region
+  load_balancing_scheme = "INTERNAL_MANAGED"
+  timeout_sec           = 10
+  health_checks         = [google_compute_region_health_check.aadhaar_vault_health_check[0].id]
+  backend {
+    group           = google_compute_region_network_endpoint_group.aadhaar_vault_neg[0].id
+    balancing_mode  = "UTILIZATION"
+    capacity_scaler = 1.0
+  }
+  log_config {
+    enable              = true
+  }
+}
+
+# health check
+resource "google_compute_region_health_check" "aadhaar_vault_health_check" {
+  count                 = var.create_aadhaar_vault_demo ? 1 : 0
+  name                  = "aadhaar-vault-hc"
+  project               = var.project            
+  region                = var.aadhaar_vault_region
+  http_health_check {
+    port_specification  = "USE_SERVING_PORT"
+  }
+}
+
+# network endpoint group
+resource "google_compute_region_network_endpoint_group" "aadhaar_vault_neg" {
+  count                 = var.create_aadhaar_vault_demo ? 1 : 0
+  name                  = "aadhaar-vault-neg"
+  project               = var.project            
+  region                = var.aadhaar_vault_region
+  network_endpoint_type = "SERVERLESS"
+  cloud_run {
+    service = google_cloud_run_service.aadhaar_vault_run_service[0].name
+  }
 }
 
 # Aadhaar Vault Cloud Run service
@@ -1636,12 +1709,12 @@ resource "google_cloud_run_service" "aadhaar_vault_run_service" {
   template {
     spec {
       containers {
-        image   = "us-central1-docker.pkg.dev/secops-project-348011/binauthz-demo-repo/aadhaar-vault-demo@sha256:dfafa5546b03a47ecc2e31c0c22f205c3129c9a55e16a2d8c5383ef56a36cd9f"
+        image   = "us-central1-docker.pkg.dev/secops-project-348011/binauthz-demo-repo/aadhaar-vault-demo@sha256:55f717944d2bdf57100359bbf56b999d14b70619acc09e7c7678c505f37dea0b"
         ports {
           container_port = 80
         }
       }
-      service_account_name = module.aadhaar_vault_cloud_function.sa-email
+      service_account_name = google_service_account.aadhaar_vault_service_account.email
     }
     metadata {
       annotations = {
