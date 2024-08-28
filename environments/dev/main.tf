@@ -1668,6 +1668,7 @@ resource "google_compute_region_backend_service" "aadhaar_vault_serverless_backe
   
   backend {
     group           = google_compute_region_network_endpoint_group.aadhaar_vault_neg[0].id
+    balancing_mode  = "RATE"
   }
   
   log_config {
