@@ -1665,12 +1665,11 @@ resource "google_compute_region_backend_service" "aadhaar_vault_serverless_backe
   protocol              = "HTTP"
   region                = var.aadhaar_vault_region
   load_balancing_scheme = "INTERNAL_MANAGED"
-  timeout_sec           = 10
+  
   backend {
     group           = google_compute_region_network_endpoint_group.aadhaar_vault_neg[0].id
-    balancing_mode  = "UTILIZATION"
-    capacity_scaler = 1.0
   }
+  
   log_config {
     enable              = true
   }
