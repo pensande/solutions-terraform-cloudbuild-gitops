@@ -1637,7 +1637,7 @@ resource "google_compute_forwarding_rule" "aadhaar_vault_forwarding_rule" {
   count                 = var.create_aadhaar_vault_demo ? 1 : 0
   name                  = "aadhaar-vault-forwarding-rule"
   network               = module.vpc.id
-  subnetwork            = google_compute_subnetwork.aadhaar_vault_backend_subnet
+  subnetwork            = google_compute_subnetwork.aadhaar_vault_backend_subnet[0]
   region                = var.aadhaar_vault_region
   ip_protocol           = "TCP"
   load_balancing_scheme = "INTERNAL_MANAGED"
