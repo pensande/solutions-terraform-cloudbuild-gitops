@@ -1761,7 +1761,7 @@ resource "google_cloud_run_service" "aadhaar_vault_run_service" {
   template {
     spec {
       containers {
-        image   = "us-central1-docker.pkg.dev/secops-project-348011/binauthz-demo-repo/aadhaar-vault-demo@sha256:55f717944d2bdf57100359bbf56b999d14b70619acc09e7c7678c505f37dea0b"
+        image   = "us-central1-docker.pkg.dev/secops-project-348011/binauthz-demo-repo/aadhaar-vault-demo@sha256:5456ddadfa60fc0b81b594633b0a287c0a676490e2e0eae1371cd28488225f33"
         ports {
           container_port = 80
         }
@@ -1778,7 +1778,7 @@ resource "google_cloud_run_service" "aadhaar_vault_run_service" {
 
   metadata {
     annotations = {
-      "run.googleapis.com/ingress"            = "all"
+      "run.googleapis.com/ingress"            = "internal"
     }
   }
 
