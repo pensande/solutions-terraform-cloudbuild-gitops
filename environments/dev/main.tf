@@ -1763,7 +1763,32 @@ resource "google_cloud_run_service" "aadhaar_vault_run_service" {
       containers {
         image   = "us-central1-docker.pkg.dev/secops-project-348011/binauthz-demo-repo/aadhaar-vault-demo@sha256:5456ddadfa60fc0b81b594633b0a287c0a676490e2e0eae1371cd28488225f33"
         ports {
-          container_port = 80
+          container_port = 8080
+        }
+        env {
+          name = "PORT"
+          value = "8080"
+        }
+        env {
+          name = "PROJECT_NAME"
+          value = var.project
+        }
+        env {
+          name = "REGION_NAME"
+          value = var.aadhaar_vault_region
+        }
+        env {
+          name = "KMS_KEY"
+          value = google_kms_crypto_key.aadhaar_vault_hsm_key.id
+        }
+        env {
+          name = "WRAPPED_KEY"
+          value_from {
+            secret_key_ref {
+              name  = google_secret_manager_secret.aadhaar_vault_wrapped_key.secret_id
+              key   = "latest"
+            }
+          }
         }
       }
       service_account_name = google_service_account.aadhaar_vault_service_account.email
