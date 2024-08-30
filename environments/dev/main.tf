@@ -574,7 +574,6 @@ resource "google_iap_web_backend_service_iam_member" "iap_run_sql_demo_member" {
 
 # Allow IAP to invoke the cloud run service
 resource "google_project_service_identity" "iap_sa" {
-  count     = var.create_iap_run_sql_demo ? 1 : 0
   provider  = google-beta
   project   = var.project
   service   = "iap.googleapis.com"
@@ -585,7 +584,7 @@ resource "google_cloud_run_service_iam_member" "run_all_users" {
   service   = google_cloud_run_service.iap_run_service[0].name
   location  = google_cloud_run_service.iap_run_service[0].location
   role      = "roles/run.invoker"
-  member    = "serviceAccount:${google_project_service_identity.iap_sa[0].email}"
+  member    = "serviceAccount:${google_project_service_identity.iap_sa.email}"
 }
 
 ######################################
@@ -1570,32 +1569,17 @@ data "google_kms_crypto_key_version" "aadhaar_vault_key_version" {
   crypto_key = google_kms_crypto_key.aadhaar_vault_hsm_key.id
 }
 
-# Aadhaar Vault Cloud Function
-module "aadhaar_vault_cloud_function" {
-  source            = "../../modules/cloud_function"
-  project           = var.project
-  region            = var.aadhaar_vault_region
-  function-name     = "aadhaar-vault"
-  function-desc     = "tokenizes and de-tokenizes aadhaar numbers"
-  entry-point       = "aadhaar_vault"
-  env-vars          = {
-      PROJECT_NAME  = var.project
-      REGION_NAME   = var.aadhaar_vault_region
-      KMS_KEY       = google_kms_crypto_key.aadhaar_vault_hsm_key.id
-    }
-  secrets           = [
-        {
-            key = "WRAPPED_KEY"
-            id  = google_secret_manager_secret.aadhaar_vault_wrapped_key.secret_id
-        }
-    ]
+# Service Account for Aadhaar Vault
+resource "google_service_account" "aadhaar_vault_service_account" {
+  account_id    = "sa-aadhaar-vault-demo"
+  display_name  = "sa-aadhaar-vault-demo"
 }
 
 # IAM entry for the aadhaar vault service account to operate the hsm key
 resource "google_kms_crypto_key_iam_member" "cloud_hsm_key_operator" {
   crypto_key_id = google_kms_crypto_key.aadhaar_vault_hsm_key.id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
-  member        = "serviceAccount:${module.aadhaar_vault_cloud_function.sa-email}"
+  member        = "serviceAccount:${google_service_account.aadhaar_vault_service_account.email}"
 }
 
 # Aadhaar Vault Wrapped Key
@@ -1617,47 +1601,273 @@ resource "google_secret_manager_secret_iam_member" "wrapped_key_iam_binding" {
   project   = google_secret_manager_secret.aadhaar_vault_wrapped_key.project
   secret_id = google_secret_manager_secret.aadhaar_vault_wrapped_key.secret_id
   role      = "roles/secretmanager.secretAccessor"
-  member        = "serviceAccount:${module.aadhaar_vault_cloud_function.sa-email}"
+  member        = "serviceAccount:${google_service_account.aadhaar_vault_service_account.email}"
 }
 
 # IAM entry for the aadhaar vault service account to use the DLP service
 resource "google_project_iam_member" "project_dlp_user_aadhaar_vault" {
   project = var.project
   role    = "roles/dlp.user"
-  member  = "serviceAccount:${module.aadhaar_vault_cloud_function.sa-email}"
+  member  = "serviceAccount:${google_service_account.aadhaar_vault_service_account.email}"
 }
 
-data "google_service_account" "clouddeploy_execution_sa" {
-  project      = var.project
-  account_id   = "clouddeploy-execution-sa"
+# Self-signed regional ssl certificate for aadhaar vault
+resource "tls_private_key" "aadhaar_vault_tls_private_key" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
 }
 
-resource "google_clouddeploy_target" "aadhaar_vault_deploy_target" {
-  name              = "aadhaar-vault-deploy-target"
-  description       = "Target for aadhaar vault delivery pipeline"
-  project           = var.project
-  location          = var.aadhaar_vault_region
-  require_approval  = false
+resource "tls_self_signed_cert" "aadhaar_vault_tls_cert" {
+  private_key_pem = tls_private_key.aadhaar_vault_tls_private_key.private_key_pem
 
-  run {
-    location = "projects/${var.project}/locations/${var.aadhaar_vault_region}"
+  # Certificate expires after 12 hours.
+  validity_period_hours = 12
+
+  # Generate a new certificate if Terraform is run within three
+  # hours of the certificate's expiration time.
+  early_renewal_hours = 3
+
+  # Reasonable set of uses for a server SSL certificate.
+  allowed_uses = [
+    "key_encipherment",
+    "digital_signature",
+    "server_auth",
+  ]
+
+  dns_names = ["aadhaarvault.com"]
+
+  subject {
+    common_name  = "aadhaarvault.com"
+    organization = "Aadhaar Vault on Google Cloud, Inc"
+  }
+}
+
+resource "google_compute_region_ssl_certificate" "aadhaar_vault_ssl_certificate" {
+  name_prefix = "aadhaar-vault-ssl-cert-"
+  private_key = tls_private_key.aadhaar_vault_tls_private_key.private_key_pem
+  certificate = tls_self_signed_cert.aadhaar_vault_tls_cert.cert_pem
+  region      = var.aadhaar_vault_region
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# proxy-only subnet
+resource "google_compute_subnetwork" "aadhaar_vault_proxy_subnet" {
+  count         = var.create_aadhaar_vault_demo ? 1 : 0
+  name          = "aadhaar-vault-proxy-subnet"
+  network       = module.vpc.id
+  region        = var.aadhaar_vault_region
+  purpose       = "REGIONAL_MANAGED_PROXY"
+  role          = "ACTIVE"
+  ip_cidr_range = "10.${local.env == "dev" ? 10 : 20}.5.0/24"
+}
+
+# backend subnet
+resource "google_compute_subnetwork" "aadhaar_vault_backend_subnet" {
+  count         = var.create_aadhaar_vault_demo ? 1 : 0
+  name          = "aadhaar-vault-backend-subnet"
+  network       = module.vpc.id
+  region        = var.aadhaar_vault_region
+  ip_cidr_range = "10.${local.env == "dev" ? 10 : 20}.6.0/24"
+}
+
+# forwarding rule
+resource "google_compute_forwarding_rule" "aadhaar_vault_forwarding_rule" {
+  count                 = var.create_aadhaar_vault_demo ? 1 : 0
+  name                  = "aadhaar-vault-forwarding-rule"
+  network               = module.vpc.id
+  subnetwork            = google_compute_subnetwork.aadhaar_vault_backend_subnet[0].id
+  region                = var.aadhaar_vault_region
+  ip_protocol           = "TCP"
+  load_balancing_scheme = "INTERNAL_MANAGED"
+  port_range            = "443"
+  target                = google_compute_region_target_https_proxy.aadhaar_vault_target_https_proxy[0].id
+  network_tier          = "PREMIUM"
+
+  depends_on            = [google_compute_subnetwork.aadhaar_vault_proxy_subnet[0]]
+}
+
+# HTTP target proxy
+resource "google_compute_region_target_https_proxy" "aadhaar_vault_target_https_proxy" {
+  count                 = var.create_aadhaar_vault_demo ? 1 : 0
+  name                  = "aadhaar-vault-target-https-proxy"
+  project               = var.project            
+  region                = var.aadhaar_vault_region
+  url_map               = google_compute_region_url_map.aadhaar_vault_url_map[0].id
+  ssl_certificates      = [google_compute_region_ssl_certificate.aadhaar_vault_ssl_certificate.self_link]
+}
+
+# URL map
+resource "google_compute_region_url_map" "aadhaar_vault_url_map" {
+  count                 = var.create_aadhaar_vault_demo ? 1 : 0
+  name                  = "aadhaar-vault-url-map"
+  project               = var.project            
+  region                = var.aadhaar_vault_region
+  default_service       = google_compute_region_backend_service.aadhaar_vault_serverless_backend[0].id
+}
+
+# backend service
+resource "google_compute_region_backend_service" "aadhaar_vault_serverless_backend" {
+  count                 = var.create_aadhaar_vault_demo ? 1 : 0
+  project               = var.project            
+  name                  = "aadhaar-vault-serverless-backend"
+  port_name             = "http"
+  protocol              = "HTTP"
+  region                = var.aadhaar_vault_region
+  load_balancing_scheme = "INTERNAL_MANAGED"
+  
+  backend {
+    group           = google_compute_region_network_endpoint_group.aadhaar_vault_neg[0].id
+    balancing_mode  = "UTILIZATION"
+    capacity_scaler = 1.0
+  }
+  
+  log_config {
+    enable              = true
   }
 
-  execution_configs {
-    usages          = ["RENDER", "DEPLOY"]
-    service_account = data.google_service_account.clouddeploy_execution_sa.email
+  iap {
+    oauth2_client_id     = google_iap_client.aadhaar_vault_iap_client[0].client_id
+    oauth2_client_secret = google_iap_client.aadhaar_vault_iap_client[0].secret
   }
 }
 
-resource "google_clouddeploy_delivery_pipeline" "aadhaar_vault_deploy_pipeline" {
-  name        = "aadhaar-vault-deploy-pipeline"
-  description = "Pipeline for aadhaar vault demo app"
-  project     = var.project
-  location    = var.aadhaar_vault_region
+#oauth2 client
+resource "google_iap_client" "aadhaar_vault_iap_client" {
+  count         = var.create_aadhaar_vault_demo ? 1 : 0
+  display_name  = "Aadhaar Vault App Client"
+  brand         =  "projects/${var.project}/brands/${data.google_project.project.number}"
+}
 
-  serial_pipeline {
-    stages {
-      target_id = google_clouddeploy_target.aadhaar_vault_deploy_target.name
+# network endpoint group
+resource "google_compute_region_network_endpoint_group" "aadhaar_vault_neg" {
+  count                 = var.create_aadhaar_vault_demo ? 1 : 0
+  name                  = "aadhaar-vault-neg"
+  project               = var.project            
+  region                = var.aadhaar_vault_region
+  network_endpoint_type = "SERVERLESS"
+  cloud_run {
+    service = google_cloud_run_service.aadhaar_vault_run_service[0].name
+  }
+}
+
+# Aadhaar Vault Cloud Run service
+resource "google_cloud_run_service" "aadhaar_vault_run_service" {
+  count     = var.create_aadhaar_vault_demo ? 1 : 0
+  name      = "aadhaar-vault-demo"
+  location  = var.aadhaar_vault_region
+
+  template {
+    spec {
+      containers {
+        image   = "us-central1-docker.pkg.dev/secops-project-348011/binauthz-demo-repo/aadhaar-vault-demo@sha256:b4df24816d511597d433172140828cfa2913f80e405b46692eaf8ca2d4ba045d"
+        ports {
+          container_port = 8080
+        }
+        env {
+          name = "PROJECT_NAME"
+          value = var.project
+        }
+        env {
+          name = "REGION_NAME"
+          value = var.aadhaar_vault_region
+        }
+        env {
+          name = "KMS_KEY"
+          value = google_kms_crypto_key.aadhaar_vault_hsm_key.id
+        }
+        env {
+          name = "WRAPPED_KEY"
+          value_from {
+            secret_key_ref {
+              name  = google_secret_manager_secret.aadhaar_vault_wrapped_key.secret_id
+              key   = "latest"
+            }
+          }
+        }
+      }
+      service_account_name = google_service_account.aadhaar_vault_service_account.email
+    }
+    metadata {
+      annotations = {
+        "autoscaling.knative.dev/maxScale"      = "2"
+        "run.googleapis.com/client-name"        = "terraform"
+      }
     }
   }
+
+  metadata {
+    annotations = {
+      "run.googleapis.com/ingress"            = "internal"
+    }
+  }
+
+  traffic {
+    percent         = 100
+    latest_revision = true
+  }
+
+  lifecycle {
+    ignore_changes = [
+      metadata[0].annotations,
+    ]
+  }
+}
+
+# Allow IAP to invoke the aadhaar vault service
+resource "google_cloud_run_service_iam_member" "aadhaar_vault_iap_users" {
+  count     = var.create_aadhaar_vault_demo ? 1 : 0
+  service   = google_cloud_run_service.aadhaar_vault_run_service[0].name
+  location  = google_cloud_run_service.aadhaar_vault_run_service[0].location
+  role      = "roles/run.invoker"
+  member    = "serviceAccount:${google_project_service_identity.iap_sa.email}"
+}
+
+# psc producer / nat subnet
+resource "google_compute_subnetwork" "aadhaar_vault_psc_producer_subnet" {
+  count         = var.create_aadhaar_vault_demo ? 1 : 0
+  name          = "aadhaar-vault-psc-producer-subnet"
+  network       = module.vpc.id
+  region        = var.aadhaar_vault_region
+  purpose       = "PRIVATE_SERVICE_CONNECT"
+  ip_cidr_range = "10.${local.env == "dev" ? 10 : 20}.7.0/24"
+}
+
+resource "google_compute_service_attachment" "aadhaar_vault_psc_service_attachment" {
+  count         = var.create_aadhaar_vault_demo ? 1 : 0
+  name          = "aadhaar-vault-psc-service-attachment"
+  region        = var.aadhaar_vault_region
+  description   = "Service attachment for Aadhaar Vault"
+
+  enable_proxy_protocol    = false
+  connection_preference    = "ACCEPT_AUTOMATIC"
+  nat_subnets              = [google_compute_subnetwork.aadhaar_vault_psc_producer_subnet[0].id]
+  target_service           = google_compute_forwarding_rule.aadhaar_vault_forwarding_rule[0].id
+}
+
+data "google_compute_subnetwork" "aadhaar_vault_psc_consumer_subnet" {
+  name          = var.subnet_name
+  project       = var.host_project
+  region        = var.subnet_region
+} 
+
+resource "google_compute_address" "aadhaar_vault_psc_consumer_address" {
+  count         = var.create_aadhaar_vault_demo ? 1 : 0
+  name          = "aadhaar-vault-psc-consumer-address"
+  address_type  = "INTERNAL"
+  subnetwork    = data.google_compute_subnetwork.aadhaar_vault_psc_consumer_subnet.self_link
+  project       = var.host_project
+  region        = var.subnet_region
+}
+
+resource "google_compute_forwarding_rule" "aadhaar_vault_psc_consumer_forwarding_rule" {
+  count                   = var.create_aadhaar_vault_demo ? 1 : 0
+  name                    = "aadhaar-vault-psc-consumer-forwarding-rule"
+  project                 = var.host_project
+  region                  = var.subnet_region
+  load_balancing_scheme   = ""
+  ip_address              = google_compute_address.aadhaar_vault_psc_consumer_address[0].id
+  target                  = google_compute_service_attachment.aadhaar_vault_psc_service_attachment[0].id
+  network                 = var.vpc
 }
