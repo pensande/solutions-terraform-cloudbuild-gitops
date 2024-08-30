@@ -1761,7 +1761,7 @@ resource "google_cloud_run_service" "aadhaar_vault_run_service" {
   template {
     spec {
       containers {
-        image   = "us-central1-docker.pkg.dev/secops-project-348011/binauthz-demo-repo/aadhaar-vault-demo@sha256:5456ddadfa60fc0b81b594633b0a287c0a676490e2e0eae1371cd28488225f33"
+        image   = "us-central1-docker.pkg.dev/secops-project-348011/binauthz-demo-repo/aadhaar-vault-demo@sha256:b4df24816d511597d433172140828cfa2913f80e405b46692eaf8ca2d4ba045d"
         ports {
           container_port = 8080
         }
