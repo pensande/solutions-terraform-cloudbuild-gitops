@@ -1786,7 +1786,7 @@ resource "google_cloud_run_service" "aadhaar_vault_run_service" {
           value_from {
             secret_key_ref {
               name  = google_secret_manager_secret.aadhaar_vault_wrapped_key.secret_id
-              key   = latest
+              key   = "latest"
             }
           }
         }
