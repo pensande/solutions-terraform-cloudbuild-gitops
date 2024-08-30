@@ -1766,10 +1766,6 @@ resource "google_cloud_run_service" "aadhaar_vault_run_service" {
           container_port = 8080
         }
         env {
-          name = "PORT"
-          value = "8080"
-        }
-        env {
           name = "PROJECT_NAME"
           value = var.project
         }
