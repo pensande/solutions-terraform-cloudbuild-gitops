@@ -514,7 +514,7 @@ resource "google_sql_database_instance" "iap_run_sql_demo_db_instance" {
 
     ip_configuration {
       ipv4_enabled  = true
-      require_ssl   = false
+      ssl_mode      = "ENCRYPTED_ONLY"
     }
   }
 
@@ -565,9 +565,9 @@ resource "google_iap_web_backend_service_iam_member" "iap_run_sql_demo_member" {
   role                  = "roles/iap.httpsResourceAccessor"
   member                = "user:${var.iap_user}"
   condition {
-    expression          = "\"accessPolicies/${google_access_context_manager_access_policy.access_policy.name}/accessLevels/india_region\" in request.auth.access_levels"
+    expression          = "\"accessPolicies/${google_access_context_manager_access_policy.access_policy.name}/accessLevels/india_windows\" in request.auth.access_levels"
     title               = "beyondcorp_access_level"
-    description         = "enforce beyondcorp access level india_region ip_range"
+    description         = "enforce beyondcorp access level india_windows"
   }
 }
 
@@ -602,25 +602,20 @@ resource "google_access_context_manager_access_policy" "access_policy" {
 
 resource "google_access_context_manager_access_level" "access_level" {
   parent = "accessPolicies/${google_access_context_manager_access_policy.access_policy.name}"
-  name   = "accessPolicies/${google_access_context_manager_access_policy.access_policy.name}/accessLevels/india_region"
-  title  = "india_region"
+  name   = "accessPolicies/${google_access_context_manager_access_policy.access_policy.name}/accessLevels/india_windows"
+  title  = "india_windows"
   basic {
     conditions {
+      device_policy {
+        os_constraints {
+          os_type = "DESKTOP_WINDOWS"
+        }
+      }
       regions = [
         "IN",
       ]
     }
   }
-
-  lifecycle {
-    ignore_changes = [basic.0.conditions]
-  }
-}
-
-resource "google_access_context_manager_access_level_condition" "access_level_conditions" {
-  access_level = google_access_context_manager_access_level.access_level.name
-  ip_subnetworks = ["192.0.4.0/24"]
-  negate = false
 }
 
 #################################################
