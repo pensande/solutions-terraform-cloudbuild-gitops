@@ -514,7 +514,7 @@ resource "google_sql_database_instance" "iap_run_sql_demo_db_instance" {
 
     ip_configuration {
       ipv4_enabled  = true
-      require_ssl   = false
+      ssl_mode      = "ENCRYPTED_ONLY"
     }
   }
 
@@ -616,16 +616,6 @@ resource "google_access_context_manager_access_level" "access_level" {
       ]
     }
   }
-
-  lifecycle {
-    ignore_changes = [basic.0.conditions]
-  }
-}
-
-resource "google_access_context_manager_access_level_condition" "access_level_conditions" {
-  access_level = google_access_context_manager_access_level.access_level.name
-  ip_subnetworks = ["192.0.4.0/24"]
-  negate = false
 }
 
 #################################################
