@@ -62,6 +62,11 @@ resource "google_container_cluster" "cluster" {
   workload_identity_config {
     workload_pool = "${var.project}.svc.id.goog"
   }
+
+  security_posture_config {
+    mode                  = "BASIC"
+    vulnerability_mode    = "VULNERABILITY_BASIC"
+  }
 }
 
 resource "google_container_node_pool" "primary_preemptible_nodes" {
