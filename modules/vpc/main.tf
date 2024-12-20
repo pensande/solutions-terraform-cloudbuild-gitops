@@ -24,6 +24,8 @@ resource "google_compute_subnetwork" "subnet" {
   ip_cidr_range = "10.${var.env == "dev" ? 10 : 20}.0.0/24"
   region        = var.region
   network       = google_compute_network.vpc.id
+
+  private_ip_google_access = true
   
   dynamic "secondary_ip_range" {
     for_each = var.secondary_ranges == null ? [] : var.secondary_ranges
