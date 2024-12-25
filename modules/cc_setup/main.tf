@@ -130,7 +130,7 @@ resource "google_bigquery_job" "load_customer_list_job" {
 }
 
 # allow project service account read access to the bigquery dataset
-resource "google_bigquery_dataset_iam_member" "dataset_viewer" {
+resource "google_bigquery_dataset_iam_member" "bq_dataset_viewer" {
   project     = var.project
   dataset_id  = google_bigquery_dataset.ccdemo_dataset.dataset_id
   role        = "roles/bigquery.dataViewer"
@@ -138,7 +138,7 @@ resource "google_bigquery_dataset_iam_member" "dataset_viewer" {
 }
 
 # allow project service account to create jobs in the project
-resource "google_project_iam_member" "operator" {
+resource "google_project_iam_member" "bq_job_user" {
   project     = var.project
   role        = "roles/bigquery.jobUser"
   member      = "serviceAccount:${google_service_account.service_account.email}"
