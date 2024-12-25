@@ -109,6 +109,7 @@ resource "google_bigquery_table" "customer_list" {
 
 resource "google_bigquery_job" "load_customer_list_job" {
   job_id     = "load-customer-list-job"
+  project    = var.project
   location   = var.region
 
   load {
