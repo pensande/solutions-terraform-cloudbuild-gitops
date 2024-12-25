@@ -94,8 +94,8 @@ resource "google_service_account_iam_member" "workload_identity-role" {
 resource "google_bigquery_dataset" "ccdemo_dataset" {
   project           = var.project
   location          = var.region
-  dataset_id        = "${var.project}_ccdemo_dataset"
-  friendly_name     = "${var.project}_ccdemo_dataset"
+  dataset_id        = "ccdemo_dataset"
+  friendly_name     = "ccdemo_dataset"
   description       = "This dataset is only meant for confidential collaboration"
 }
 
@@ -103,7 +103,7 @@ resource "google_bigquery_dataset" "ccdemo_dataset" {
 resource "google_bigquery_table" "customer_list" {
   deletion_protection   = false
   dataset_id            = google_bigquery_dataset.ccdemo_dataset.dataset_id
-  table_id              = "${var.project}-customer-list"
+  table_id              = "customer-list"
 }
 
 resource "google_bigquery_job" "load_customer_list_job" {
