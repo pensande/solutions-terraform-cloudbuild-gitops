@@ -19,6 +19,12 @@ resource "google_storage_bucket_object" "encrypted_object" {
   bucket        = google_storage_bucket.input_bucket.name
 }
 
+resource "google_storage_bucket_object" "plaintext_object" {
+  name          = "${var.file_name}"
+  content       = file("${path.module}/raw_files/${var.file_name}")
+  bucket        = google_storage_bucket.input_bucket.name
+}
+
 # KMS resources
 resource "google_kms_key_ring" "encryption_keyring" {
   project       = var.project
@@ -82,4 +88,48 @@ resource "google_service_account_iam_member" "workload_identity-role" {
   service_account_id = google_service_account.service_account.name
   role               = "roles/iam.workloadIdentityUser"
   member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.workload_identity_pool.name}/*"
+}
+
+# bigquery dataset
+resource "google_bigquery_dataset" "ccdemo_dataset" {
+  project           = var.project
+  location          = var.region
+  dataset_id        = "${var.project}_ccdemo_dataset"
+  friendly_name     = "${var.project}_ccdemo_dataset"
+  description       = "This dataset is only meant for confidential collaboration"
+}
+
+# bigquery table
+resource "google_bigquery_table" "customer_list" {
+  deletion_protection   = false
+  dataset_id            = google_bigquery_dataset.ccdemo_dataset.dataset_id
+  table_id              = "${var.project}-customer-list"
+}
+
+resource "google_bigquery_job" "load_customer_list_job" {
+  job_id     = "load-customer-list-job"
+  location   = var.region
+
+  load {
+    source_uris     = [
+      "gs://${google_storage_bucket.input_bucket.name}/${google_storage_bucket_object.plaintext_object.name}",
+    ]
+
+    destination_table {
+      table_id      = google_bigquery_table.customer_list.id
+    }
+
+    skip_leading_rows       = 1
+    schema_update_options   = ["ALLOW_FIELD_RELAXATION", "ALLOW_FIELD_ADDITION"]
+
+    write_disposition       = "WRITE_APPEND"
+    autodetect              = true
+  }
+}
+
+# allow project service account read access to the bigquery dataset
+resource "google_bigquery_dataset_iam_member" "operator" {
+  dataset_id = google_bigquery_dataset.ccdemo_dataset.dataset_id
+  role       = "roles/bigquery.dataViewer"
+  member     = "serviceAccount:${google_service_account.service_account.email}"
 }
