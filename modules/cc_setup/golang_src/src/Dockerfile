@@ -2,7 +2,7 @@ FROM alpine:latest
 
 WORKDIR /test
 
-COPY workload /test
+COPY cc_workload /test
 
 ENTRYPOINT ["/test/workload"]
 
