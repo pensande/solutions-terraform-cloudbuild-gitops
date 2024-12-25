@@ -102,6 +102,7 @@ resource "google_bigquery_dataset" "ccdemo_dataset" {
 # bigquery table
 resource "google_bigquery_table" "customer_list" {
   deletion_protection   = false
+  project               = var.project
   dataset_id            = google_bigquery_dataset.ccdemo_dataset.dataset_id
   table_id              = "customer-list"
 }
@@ -129,7 +130,8 @@ resource "google_bigquery_job" "load_customer_list_job" {
 
 # allow project service account read access to the bigquery dataset
 resource "google_bigquery_dataset_iam_member" "operator" {
-  dataset_id = google_bigquery_dataset.ccdemo_dataset.dataset_id
-  role       = "roles/bigquery.dataViewer"
-  member     = "serviceAccount:${google_service_account.service_account.email}"
+  project     = var.project
+  dataset_id  = google_bigquery_dataset.ccdemo_dataset.dataset_id
+  role        = "roles/bigquery.dataViewer"
+  member      = "serviceAccount:${google_service_account.service_account.email}"
 }
