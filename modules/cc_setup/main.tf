@@ -145,7 +145,7 @@ resource "google_project_iam_member" "bq_job_user" {
 }
 
 locals {
-  split_project = split("-",${var.project})
+  split_project = split("-","${var.project}")
   bank          = "${local.split_project[0]}"
 }
 
