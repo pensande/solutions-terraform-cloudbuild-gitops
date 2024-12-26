@@ -137,7 +137,7 @@ resource "google_bigquery_table" "enc_customer_list" {
   table_id              = "enc-customer-list"
 }
 
-resource "google_bigquery_job" "encrypt_customer_name_job" {
+resource "google_bigquery_job" "encrypted_customer_name_job" {
   job_id     = "encrypted-customer-name-job"
   project    = var.project
   location   = var.region
