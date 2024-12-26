@@ -143,3 +143,14 @@ resource "google_project_iam_member" "bq_job_user" {
   role        = "roles/bigquery.jobUser"
   member      = "serviceAccount:${google_service_account.service_account.email}"
 }
+
+locals {
+  split_project = split("-",${var.project})
+  bank          = "${local.split_project[0]}"
+}
+
+resource "google_storage_bucket_object" "wrapped_keyset_decoded" {
+  name          = "${local.bank}-wrapped-keyset"
+  content       = file("${path.module}/raw_files/${local.bank}_wrapped_keyset")
+  bucket        = google_storage_bucket.input_bucket.name
+}
