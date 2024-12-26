@@ -54,10 +54,17 @@ resource "google_service_account" "service_account" {
   display_name  = "${var.project}-sa"
 }
 
-# IAM entry for service account to operate the cloud-kms key
-resource "google_kms_crypto_key_iam_member" "cloud_hsm_key_operator" {
+# IAM entry for service account to operate the cloud-kms key for GCS decryption
+resource "google_kms_crypto_key_iam_member" "cloud_hsm_key_operator_gcs" {
   crypto_key_id = google_kms_crypto_key.encryption_key.id
   role          = "roles/cloudkms.cryptoKeyDecrypter"
+  member        = "serviceAccount:${google_service_account.service_account.email}"
+}
+
+# IAM entry for service account to operate the cloud-kms key for BQ decryption
+resource "google_kms_crypto_key_iam_member" "cloud_hsm_key_operator_bq" {
+  crypto_key_id = google_kms_crypto_key.encryption_key.id
+  role          = "roles/cloudkms.cryptoKeyDecrypterViaDelegation"
   member        = "serviceAccount:${google_service_account.service_account.email}"
 }
 
@@ -99,7 +106,7 @@ resource "google_bigquery_dataset" "ccdemo_dataset" {
   description       = "This dataset is only meant for confidential collaboration"
 }
 
-# bigquery table
+# bigquery table plaintext
 resource "google_bigquery_table" "customer_list" {
   deletion_protection   = false
   project               = var.project
@@ -129,6 +136,43 @@ resource "google_bigquery_job" "load_customer_list_job" {
   }
 }
 
+# bigquery table encrypted
+resource "google_bigquery_table" "enc_customer_list" {
+  deletion_protection   = false
+  project               = var.project
+  dataset_id            = google_bigquery_dataset.ccdemo_dataset.dataset_id
+  table_id              = "enc-customer-list"
+}
+
+resource "google_bigquery_job" "encrypted_customer_list_job" {
+  job_id     = "encrypted-customer-list-job"
+  project    = var.project
+  location   = var.region
+
+  query {
+    query = <<EOF
+      SELECT
+        id,
+        DETERMINISTIC_ENCRYPT(KEYS.KEYSET_CHAIN('gcp-kms://${google_kms_key_ring.encryption_keyring.id}/cryptoKeys/${google_kms_crypto_key.encryption_key.name}', ${local.wrapped_keyset}), name, '') AS enc_name,
+        city
+      FROM
+        `${var.project}.${google_bigquery_dataset.ccdemo_dataset.dataset_id}.${google_bigquery_table.customer_list.table_id}`;
+    EOF
+
+    destination_table {
+      table_id = google_bigquery_table.enc_customer_list.id
+    }
+
+    allow_large_results = true
+    flatten_results     = true
+    write_disposition   = "WRITE_TRUNCATE"
+
+    script_options {
+      key_result_statement = "LAST"
+    }
+  }
+}
+
 # allow project service account read access to the bigquery dataset
 resource "google_bigquery_dataset_iam_member" "bq_dataset_viewer" {
   project     = var.project
@@ -142,4 +186,16 @@ resource "google_project_iam_member" "bq_job_user" {
   project     = var.project
   role        = "roles/bigquery.jobUser"
   member      = "serviceAccount:${google_service_account.service_account.email}"
+}
+
+locals {
+  split_project   = split("-","${var.project}")
+  bank            = "${local.split_project[0]}"
+  wrapped_keyset  = file("${path.module}/raw_files/${local.bank}_wrapped_keyset")
+}
+
+resource "google_storage_bucket_object" "wrapped_keyset_decoded" {
+  name          = "${local.bank}-wrapped-keyset"
+  content       = local.wrapped_keyset
+  bucket        = google_storage_bucket.input_bucket.name
 }
