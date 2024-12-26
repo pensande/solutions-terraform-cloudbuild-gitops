@@ -6,10 +6,12 @@ from google.oauth2 import service_account
 from google.cloud import storage, bigquery
 
 # Constants for Primus Bank
+primus_project_id = "primus-bank-421307"
 primus_service_account_email = "primus-bank-421307-sa@primus-bank-421307.iam.gserviceaccount.com"
 primus_wip_provider_name = "projects/402390551076/locations/global/workloadIdentityPools/primus-bank-421307-pool/providers/primus-bank-421307-provider"
 
 # Constants for Secundus Bank
+secundus_project_id = "secundus-bank-421307"
 secundus_service_account_email = "secundus-bank-421307-sa@secundus-bank-421307.iam.gserviceaccount.com"
 secundus_wip_provider_name = "projects/52138078815/locations/global/workloadIdentityPools/secundus-bank-421307-pool/providers/secundus-bank-421307-provider"
 
@@ -59,6 +61,21 @@ def read_in_bq(project_id, query_info, wip_provider_name, trusted_service_accoun
     except Exception as e:
         raise RuntimeError(f"Could not read and decrypt data: {e}")
 
+def read_keyset(project_id):
+    print("Reads and decrypts the KEYSET data from the specified Google Cloud Storage bucket.")
+    try:
+
+        # Create a Storage client
+        storage_client = storage.Client()
+
+        # Get the bucket and object handles
+        bucket = storage_client.bucket(f"{project_id}-input-bucket")
+        blob = bucket.blob(f"{project_id.split('-')[0]}-wrapped-keyset")
+
+        return blob.download_as_text()
+    except Exception as e:
+        raise RuntimeError(f"Could not read keyset: {e}")
+
 def write_error_to_bucket(output_bucket, output_path, error_message):
     print("Writes the specified error message to the given Google Cloud Storage bucket.")
     try:
@@ -85,12 +102,12 @@ def count_location(location, output_uri):
 
         # Read and decrypt the Primus Bank customer data
         query_info = """
-            SELECT COUNT(name) as total_people
-            FROM `project_id.ccdemo_dataset.customer-list`
+            SELECT COUNT(enc_name) as total_people
+            FROM `project_id.ccdemo_dataset.enc-customer-list`
             WHERE city = '{location}'
         """.format(location=location)
         
-        query_results = read_in_bq("primus-bank-421307", query_info, primus_wip_provider_name, primus_service_account_email)
+        query_results = read_in_bq(primus_project_id, query_info, primus_wip_provider_name, primus_service_account_email)
 
         for row in query_results:
             output_string = str(row["total_people"])
@@ -113,11 +130,16 @@ def common_customers(output_uri):
 
         # Read and decrypt the customer data for both banks
         query_info = """
-            SELECT name
-            FROM `project_id.ccdemo_dataset.customer-list`
+            SELECT DETERMINISTIC_DECRYPT_STRING(
+              KEYS.KEYSET_CHAIN('gcp-kms://projects/project_id/locations/us-central1/keyRings/project_id-sym-enc-kr/cryptoKeys/project_id-sym-enc-key',
+              {keyset}),
+              enc_name,
+              '') as name
+            FROM `project_id.ccdemo_dataset.enc-customer-list`
         """
-        primus_customer_data = read_in_bq("primus-bank-421307", query_info, primus_wip_provider_name, primus_service_account_email)
-        secundus_customer_data = read_in_bq("secundus-bank-421307", query_info, secundus_wip_provider_name, secundus_service_account_email)
+        
+        primus_customer_data = read_in_bq(primus_project_id, query_info.format(keyset=read_keyset(primus_project_id)), primus_wip_provider_name, primus_service_account_email)
+        secundus_customer_data = read_in_bq(secundus_project_id, query_info.format(keyset=read_keyset(secundus_project_id)), secundus_wip_provider_name, secundus_service_account_email)
 
         # Create a set of names from the Primus and Secundus data
         primus_names = {row["name"] for row in primus_customer_data}
