@@ -54,10 +54,17 @@ resource "google_service_account" "service_account" {
   display_name  = "${var.project}-sa"
 }
 
-# IAM entry for service account to operate the cloud-kms key
+# IAM entry for service account to operate the cloud-kms key for GCS decryption
 resource "google_kms_crypto_key_iam_member" "cloud_hsm_key_operator" {
   crypto_key_id = google_kms_crypto_key.encryption_key.id
   role          = "roles/cloudkms.cryptoKeyDecrypter"
+  member        = "serviceAccount:${google_service_account.service_account.email}"
+}
+
+# IAM entry for service account to operate the cloud-kms key for BQ decryption
+resource "google_kms_crypto_key_iam_member" "cloud_hsm_key_operator" {
+  crypto_key_id = google_kms_crypto_key.encryption_key.id
+  role          = "roles/cloudkms.cryptoKeyDecrypterViaDelegation"
   member        = "serviceAccount:${google_service_account.service_account.email}"
 }
 
