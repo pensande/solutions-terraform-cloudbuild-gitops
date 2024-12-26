@@ -157,7 +157,8 @@ resource "google_bigquery_job" "encrypt_customer_name_job" {
     }
 
     allow_large_results = true
-    flatten_results = true
+    flatten_results     = true
+    write_disposition   = "WRITE_TRUNCATE"
 
     script_options {
       key_result_statement = "LAST"
