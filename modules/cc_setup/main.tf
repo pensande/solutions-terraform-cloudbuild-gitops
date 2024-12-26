@@ -139,23 +139,21 @@ resource "google_bigquery_table" "enc_customer_list" {
 
 resource "google_bigquery_job" "encrypt_customer_name_job" {
   job_id     = "encrypt-customer-name-job"
+  project    = var.project
+  location   = var.region
 
   query {
     query = <<EOF
       SELECT
         id,
-        DETERMINISTIC_ENCRYPT(KEYS.KEYSET_CHAIN('gcp-kms://${google_kms_crypto_key.encryption_key.id}', '${local.wrapped_keyset}'), name, '') AS enc_name,
+        DETERMINISTIC_ENCRYPT(KEYS.KEYSET_CHAIN('gcp-kms://${google_kms_key_ring.encryption_keyring.id}/cryptoKeys/${google_kms_crypto_key.encryption_key.name}', '${local.wrapped_keyset}'), name, '') AS enc_name,
         city
       FROM
-        `${var.project}.${google_bigquery_dataset.ccdemo_dataset.id}.${google_bigquery_table.customer_list.id}`;
+        `${var.project}.${google_bigquery_dataset.ccdemo_dataset.dataset_id}.${google_bigquery_table.customer_list.table_id}`;
     EOF
 
     destination_table {
       table_id = google_bigquery_table.enc_customer_list.id
-    }
-
-    default_dataset {
-      dataset_id = google_bigquery_dataset.ccdemo_dataset.id
     }
 
     allow_large_results = true
