@@ -99,7 +99,7 @@ resource "google_bigquery_dataset" "ccdemo_dataset" {
   description       = "This dataset is only meant for confidential collaboration"
 }
 
-# bigquery table
+# bigquery table plaintext
 resource "google_bigquery_table" "customer_list" {
   deletion_protection   = false
   project               = var.project
@@ -129,6 +129,44 @@ resource "google_bigquery_job" "load_customer_list_job" {
   }
 }
 
+# bigquery table encrypted
+resource "google_bigquery_table" "enc_customer_list" {
+  deletion_protection   = false
+  project               = var.project
+  dataset_id            = google_bigquery_dataset.ccdemo_dataset.dataset_id
+  table_id              = "enc-customer-list"
+}
+
+resource "google_bigquery_job" "encrypt_customer_name_job" {
+  job_id     = "encrypt-customer-name-job"
+
+  query {
+    query = <<EOF
+      SELECT
+        id,
+        DETERMINISTIC_ENCRYPT(KEYS.KEYSET_CHAIN('gcp-kms://${google_kms_crypto_key.encryption_key.id}', '${local.wrapped_keyset}'), name, '') AS enc_name,
+        city
+      FROM
+        `${var.project}.${google_bigquery_dataset.ccdemo_dataset.id}.${google_bigquery_table.customer_list.id}`;
+    EOF
+
+    destination_table {
+      table_id = google_bigquery_table.enc_customer_list.id
+    }
+
+    default_dataset {
+      dataset_id = google_bigquery_dataset.ccdemo_dataset.id
+    }
+
+    allow_large_results = true
+    flatten_results = true
+
+    script_options {
+      key_result_statement = "LAST"
+    }
+  }
+}
+
 # allow project service account read access to the bigquery dataset
 resource "google_bigquery_dataset_iam_member" "bq_dataset_viewer" {
   project     = var.project
@@ -145,12 +183,13 @@ resource "google_project_iam_member" "bq_job_user" {
 }
 
 locals {
-  split_project = split("-","${var.project}")
-  bank          = "${local.split_project[0]}"
+  split_project   = split("-","${var.project}")
+  bank            = "${local.split_project[0]}"
+  wrapped_keyset  = file("${path.module}/raw_files/${local.bank}_wrapped_keyset")
 }
 
 resource "google_storage_bucket_object" "wrapped_keyset_decoded" {
   name          = "${local.bank}-wrapped-keyset"
-  content       = file("${path.module}/raw_files/${local.bank}_wrapped_keyset")
+  content       = local.wrapped_keyset
   bucket        = google_storage_bucket.input_bucket.name
 }
