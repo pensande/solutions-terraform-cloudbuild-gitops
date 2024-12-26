@@ -134,7 +134,7 @@ def common_customers(output_uri):
               KEYS.KEYSET_CHAIN('gcp-kms://projects/project_id/locations/us-central1/keyRings/project_id-sym-enc-kr/cryptoKeys/project_id-sym-enc-key',
               {keyset}),
               enc_name,
-              '') as enc_name
+              '') as name
             FROM `project_id.ccdemo_dataset.enc-customer-list`
         """
         
@@ -142,8 +142,8 @@ def common_customers(output_uri):
         secundus_customer_data = read_in_bq(secundus_project_id, query_info.format(keyset=read_keyset(secundus_project_id)), secundus_wip_provider_name, secundus_service_account_email)
 
         # Create a set of names from the Primus and Secundus data
-        primus_names = {row["enc_name"] for row in primus_customer_data}
-        secundus_names = {row["enc_name"] for row in secundus_customer_data}
+        primus_names = {row["name"] for row in primus_customer_data}
+        secundus_names = {row["name"] for row in secundus_customer_data}
 
         # Find the common names in the Secundus data
         common = [name for name in secundus_names if name in primus_names]
