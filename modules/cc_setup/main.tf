@@ -111,8 +111,8 @@ resource "google_bigquery_table" "customer_list" {
   table_id              = "${local.bank}-customer-list"
 }
 
-resource "google_bigquery_job" "load_customer_list_job" {
-  job_id     = "load-customer-list-job"
+resource "google_bigquery_job" "load_customer_data_job" {
+  job_id     = "${local.bank}-load-customer-data-job"
   project    = var.source_project
   location   = var.region
 
@@ -150,8 +150,8 @@ resource "google_bigquery_table" "enc_customer_list" {
   table_id              = "enc-customer-list"
 }
 
-resource "google_bigquery_job" "encrypted_customer_list_job" {
-  job_id     = "encrypted-customer-list-job"
+resource "google_bigquery_job" "encrypt_customer_names_job" {
+  job_id     = "encrypt-customer-names-job"
   project    = var.project
   location   = var.region
 
