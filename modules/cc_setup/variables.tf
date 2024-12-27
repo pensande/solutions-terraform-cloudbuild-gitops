@@ -7,6 +7,14 @@ variable "region" {
   type          = string
 }
 
-variable "file_name" {
+variable "source_project" {
+  type          = string
+}
+
+variable "source_bucket" {
+  type          = string
+}
+
+variable "source_dataset" {
   type          = string
 }

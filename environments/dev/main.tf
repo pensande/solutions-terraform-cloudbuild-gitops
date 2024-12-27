@@ -787,18 +787,41 @@ resource "google_project_iam_member" "config_control_service_user" {
 ## Confidential Space Demo ##
 #############################
 
+# gcs source bucket 
+resource "google_storage_bucket" "ccdemo_source_data" {
+  project       = var.demo_project
+  location      = var.region
+  name          = "solution-demos-ccdemo-source-data"
+  storage_class = "STANDARD"
+
+  uniform_bucket_level_access = true
+}
+
+# bigquery source dataset
+resource "google_bigquery_dataset" "ccdemo_source_dataset" {
+  project           = var.demo_project
+  location          = var.region
+  dataset_id        = "ccdemo_source_dataset"
+  friendly_name     = "ccdemo_source_dataset"
+  description       = "This dataset stores raw customer data for the confidential space demo"
+}
+
 module "primus_services" {
-  source    = "../../modules/cc_setup"
-  project   = var.primus_project
-  region    = var.region
-  file_name = "primus_customer_list.csv"
+  source          = "../../modules/cc_setup"
+  project         = var.primus_project
+  region          = var.region
+  source_project  = var.demo_project
+  source_bucket   = google_storage_bucket.ccdemo_source_data.name
+  source_dataset  = google_bigquery_dataset.ccdemo_source_dataset.dataset_id
 }
 
 module "secundus_services" {
-  source    = "../../modules/cc_setup"
-  project   = var.secundus_project
-  region    = var.region
-  file_name = "secundus_customer_list.csv"
+  source          = "../../modules/cc_setup"
+  project         = var.secundus_project
+  region          = var.region
+  source_project  = var.demo_project
+  source_bucket   = google_storage_bucket.ccdemo_source_data.name
+  source_dataset  = google_bigquery_dataset.ccdemo_source_dataset.dataset_id
 }
 
 resource "google_storage_bucket" "result_bucket" {
