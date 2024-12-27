@@ -1,3 +1,9 @@
+locals {
+  split_project   = split("-","${var.project}")
+  bank            = "${local.split_project[0]}"
+  wrapped_keyset  = file("${path.module}/raw_files/${local.bank}_wrapped_keyset")
+}
+
 resource "google_storage_bucket" "input_bucket" {
   project       = var.project
   location      = var.region
@@ -10,19 +16,19 @@ resource "google_storage_bucket" "input_bucket" {
 resource "google_kms_secret_ciphertext" "encrypted_file" {
   provider      = google-beta
   crypto_key    = google_kms_crypto_key.encryption_key.id
-  plaintext     = file("${path.module}/raw_files/${var.file_name}")
+  plaintext     = file("${path.module}/raw_files/${local.bank}_customer_list.csv")
 }
 
 resource "google_storage_bucket_object" "encrypted_object" {
-  name          = "enc_${var.file_name}"
+  name          = "enc_${local.bank}_customer_list.csv"
   content       = google_kms_secret_ciphertext.encrypted_file.ciphertext
   bucket        = google_storage_bucket.input_bucket.name
 }
 
 resource "google_storage_bucket_object" "plaintext_object" {
-  name          = "${var.file_name}"
-  content       = file("${path.module}/raw_files/${var.file_name}")
-  bucket        = google_storage_bucket.input_bucket.name
+  name          = "${local.bank}_customer_list.csv"
+  content       = file("${path.module}/raw_files/${local.bank}_customer_list.csv")
+  bucket        = var.source_bucket
 }
 
 # KMS resources
@@ -97,31 +103,22 @@ resource "google_service_account_iam_member" "workload_identity-role" {
   member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.workload_identity_pool.name}/*"
 }
 
-# bigquery dataset
-resource "google_bigquery_dataset" "ccdemo_dataset" {
-  project           = var.project
-  location          = var.region
-  dataset_id        = "ccdemo_dataset"
-  friendly_name     = "ccdemo_dataset"
-  description       = "This dataset is only meant for confidential collaboration"
-}
-
 # bigquery table plaintext
 resource "google_bigquery_table" "customer_list" {
   deletion_protection   = false
-  project               = var.project
-  dataset_id            = google_bigquery_dataset.ccdemo_dataset.dataset_id
-  table_id              = "customer-list"
+  project               = var.source_project
+  dataset_id            = var.source_dataset
+  table_id              = "${local.bank}-customer-list"
 }
 
 resource "google_bigquery_job" "load_customer_list_job" {
   job_id     = "load-customer-list-job"
-  project    = var.project
+  project    = var.source_project
   location   = var.region
 
   load {
     source_uris     = [
-      "gs://${google_storage_bucket.input_bucket.name}/${google_storage_bucket_object.plaintext_object.name}",
+      "gs://${var.source_bucket}/${google_storage_bucket_object.plaintext_object.name}",
     ]
 
     destination_table {
@@ -131,9 +128,18 @@ resource "google_bigquery_job" "load_customer_list_job" {
     skip_leading_rows       = 1
     schema_update_options   = ["ALLOW_FIELD_RELAXATION", "ALLOW_FIELD_ADDITION"]
 
-    write_disposition       = "WRITE_APPEND"
+    write_disposition       = "WRITE_TRUNCATE"
     autodetect              = true
   }
+}
+
+# bigquery dataset
+resource "google_bigquery_dataset" "ccdemo_dataset" {
+  project           = var.project
+  location          = var.region
+  dataset_id        = "ccdemo_dataset"
+  friendly_name     = "ccdemo_dataset"
+  description       = "This dataset is only meant for confidential collaboration"
 }
 
 # bigquery table encrypted
@@ -156,7 +162,7 @@ resource "google_bigquery_job" "encrypted_customer_list_job" {
         DETERMINISTIC_ENCRYPT(KEYS.KEYSET_CHAIN('gcp-kms://${google_kms_key_ring.encryption_keyring.id}/cryptoKeys/${google_kms_crypto_key.encryption_key.name}', ${local.wrapped_keyset}), name, '') AS enc_name,
         city
       FROM
-        `${var.project}.${google_bigquery_dataset.ccdemo_dataset.dataset_id}.${google_bigquery_table.customer_list.table_id}`;
+        `${var.source_project}.${var.source_dataset}.${google_bigquery_table.customer_list.table_id}`;
     EOF
 
     destination_table {
@@ -186,12 +192,6 @@ resource "google_project_iam_member" "bq_job_user" {
   project     = var.project
   role        = "roles/bigquery.jobUser"
   member      = "serviceAccount:${google_service_account.service_account.email}"
-}
-
-locals {
-  split_project   = split("-","${var.project}")
-  bank            = "${local.split_project[0]}"
-  wrapped_keyset  = file("${path.module}/raw_files/${local.bank}_wrapped_keyset")
 }
 
 resource "google_storage_bucket_object" "wrapped_keyset_decoded" {
