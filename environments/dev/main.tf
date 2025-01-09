@@ -970,6 +970,37 @@ resource "google_org_policy_policy" "secops_disable_trusted_image_projects" {
   }
 }
 
+# Workload Service Account for SecOps Project
+resource "google_service_account" "aws_workload_service_account" {
+  project       = var.project
+  account_id    = "ccdemo-aws-workload-sa"
+  display_name  = "ccdemo-aws-workload-sa"
+}
+
+# IAM entry for AWS Workload Service Account to write logs
+resource "google_project_iam_member" "cc_aws_log_writer" {
+  project = var.project
+  role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${google_service_account.aws_workload_service_account.email}"
+}
+
+# IAM entry for Workload Service Account to generate an attestation token
+resource "google_project_iam_member" "cc_aws_workload_user" {
+  project = var.project
+  role    = "roles/confidentialcomputing.workloadUser"
+  member  = "serviceAccount:${google_service_account.aws_workload_service_account.email}"
+}
+
+# IAM entry for Workload Service Account to read from the Primus Artifact Registry repo
+resource "google_artifact_registry_repository_iam_member" "aws_primus_ar_reader" {
+  provider    = google-beta
+  project     = var.primus_project
+  location    = var.region
+  repository  = "${module.primus_services.repo_name}"
+  role        = "roles/artifactregistry.reader"
+  member      = "serviceAccount:${google_service_account.aws_workload_service_account.email}"
+}
+
 resource "google_compute_instance" "aws_workload_cvm" {
   count                     = var.create_cc_demo ? 1 : 0
   project                   = var.project
@@ -1006,7 +1037,7 @@ resource "google_compute_instance" "aws_workload_cvm" {
   }
 
   service_account {
-    email  = google_service_account.workload_service_account.email
+    email  = google_service_account.aws_workload_service_account.email
     scopes = ["cloud-platform"]
   }
   
