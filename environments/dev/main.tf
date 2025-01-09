@@ -1000,7 +1000,7 @@ resource "google_compute_instance" "first_workload_cvm" {
   }
   
   metadata = {
-    tee-image-reference = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/workload-container:latest"
+    tee-image-reference = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/awsdemo-container:latest"
     tee-restart-policy  = "Never"
     tee-cmd             = "[\"count-location\",\"Seattle\",\"gs://${google_storage_bucket.result_bucket.name}/seattle-result\"]"
   }
@@ -1049,9 +1049,9 @@ resource "google_compute_instance" "second_workload_cvm" {
   }
   
   metadata = {
-    tee-image-reference = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/workload-container:latest"
+    tee-image-reference = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/awsdemo-container:latest"
     tee-restart-policy  = "Never"
-    tee-cmd             = "[\"list-common-customers\",\"gs://${google_storage_bucket.result_bucket.name}/list-common-result\"]"
+    #tee-cmd             = "[\"list-common-customers\",\"gs://${google_storage_bucket.result_bucket.name}/list-common-result\"]"
   }
 
   depends_on = [time_sleep.wait_disable_trusted_image_projects]
