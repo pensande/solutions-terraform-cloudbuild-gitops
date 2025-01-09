@@ -955,12 +955,71 @@ resource "google_org_policy_policy" "disable_trusted_image_projects" {
 
 # wait after disabling org policy
 resource "time_sleep" "wait_disable_trusted_image_projects" {
-  depends_on       = [google_org_policy_policy.disable_trusted_image_projects]
+  depends_on       = [google_org_policy_policy.disable_trusted_image_projects, google_org_policy_policy.secops_disable_trusted_image_projects]
   create_duration  = "30s"
 }
 
-resource "google_compute_instance" "first_workload_cvm" {
+# disable org policy to create VMs using confidential space image
+resource "google_org_policy_policy" "secops_disable_trusted_image_projects" {
+  name   = "projects/${var.project}/policies/compute.trustedImageProjects"
+  parent = "projects/${var.project}"
+
+  spec {
+    inherit_from_parent = false
+    reset               = true
+  }
+}
+
+resource "google_compute_instance" "aws_workload_cvm" {
   count                     = var.create_cc_demo ? 1 : 0
+  project                   = var.project
+  name                      = "aws-workload-cvm"
+  machine_type              = "n2d-standard-2"
+  zone                      = "${var.region}-a"
+  
+  allow_stopping_for_update = true
+
+  shielded_instance_config {
+    enable_integrity_monitoring = true
+    enable_secure_boot          = true
+    enable_vtpm                 = true
+  }
+
+  confidential_instance_config {
+    enable_confidential_compute = true
+  }
+
+  scheduling {
+    on_host_maintenance = "TERMINATE"
+  }
+
+  boot_disk {
+    auto_delete = true
+    initialize_params {
+      image = "confidential-space-images/confidential-space"
+    }
+  }
+
+  network_interface {
+    network    = module.vpc.id
+    subnetwork = module.vpc.subnet
+  }
+
+  service_account {
+    email  = google_service_account.workload_service_account.email
+    scopes = ["cloud-platform"]
+  }
+  
+  metadata = {
+    tee-image-reference = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/awsdemo-container:latest"
+    tee-restart-policy  = "Never"
+  }
+
+  depends_on = [time_sleep.wait_disable_trusted_image_projects]
+}
+
+resource "google_compute_instance" "first_workload_cvm" {
+  count                     = var.create_cc_demo ? 0 : 0
   project                   = var.secundus_project
   name                      = "first-workload-cvm"
   machine_type              = "n2d-standard-2"
@@ -1000,7 +1059,7 @@ resource "google_compute_instance" "first_workload_cvm" {
   }
   
   metadata = {
-    tee-image-reference = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/awsdemo-container:latest"
+    tee-image-reference = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/workload-container:latest"
     tee-restart-policy  = "Never"
     tee-cmd             = "[\"count-location\",\"Seattle\",\"gs://${google_storage_bucket.result_bucket.name}/seattle-result\"]"
   }
@@ -1009,7 +1068,7 @@ resource "google_compute_instance" "first_workload_cvm" {
 }
 
 resource "google_compute_instance" "second_workload_cvm" {
-  count                     = var.create_cc_demo ? 1 : 0
+  count                     = var.create_cc_demo ? 0 : 0
   project                   = var.secundus_project
   name                      = "second-workload-cvm"
   machine_type              = "n2d-standard-2"
@@ -1049,9 +1108,9 @@ resource "google_compute_instance" "second_workload_cvm" {
   }
   
   metadata = {
-    tee-image-reference = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/awsdemo-container:latest"
+    tee-image-reference = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/workload-container:latest"
     tee-restart-policy  = "Never"
-    #tee-cmd             = "[\"list-common-customers\",\"gs://${google_storage_bucket.result_bucket.name}/list-common-result\"]"
+    tee-cmd             = "[\"list-common-customers\",\"gs://${google_storage_bucket.result_bucket.name}/list-common-result\"]"
   }
 
   depends_on = [time_sleep.wait_disable_trusted_image_projects]
