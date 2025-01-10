@@ -1042,8 +1042,9 @@ resource "google_compute_instance" "aws_workload_cvm" {
   }
   
   metadata = {
-    tee-image-reference = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/awsdemo-container:latest"
-    tee-restart-policy  = "Never"
+    tee-image-reference         = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/awsdemo-container:latest"
+    tee-restart-policy          = "Never"
+    tee-container-log-redirect  = "true"
   }
 
   depends_on = [time_sleep.wait_disable_trusted_image_projects]
