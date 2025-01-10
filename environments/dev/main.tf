@@ -984,14 +984,14 @@ resource "google_project_iam_member" "cc_aws_log_writer" {
   member  = "serviceAccount:${google_service_account.aws_workload_service_account.email}"
 }
 
-# IAM entry for Workload Service Account to generate an attestation token
+# IAM entry for AWS Workload Service Account to generate an attestation token
 resource "google_project_iam_member" "cc_aws_workload_user" {
   project = var.project
   role    = "roles/confidentialcomputing.workloadUser"
   member  = "serviceAccount:${google_service_account.aws_workload_service_account.email}"
 }
 
-# IAM entry for Workload Service Account to read from the Primus Artifact Registry repo
+# IAM entry for AWS Workload Service Account to read from the Primus Artifact Registry repo
 resource "google_artifact_registry_repository_iam_member" "aws_primus_ar_reader" {
   provider    = google-beta
   project     = var.primus_project
