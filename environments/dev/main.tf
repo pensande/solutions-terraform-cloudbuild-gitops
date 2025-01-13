@@ -914,9 +914,9 @@ resource "google_artifact_registry_repository_iam_member" "primus_ar_reader" {
   repository  = "${module.primus_services.repo_name}"
   role        = "roles/artifactregistry.reader"
   member      = "user:jkrstic@google.com"
-}
 
-depends_on = [time_sleep.disable_domain_restricted_sharing_primus]
+  depends_on = [time_sleep.disable_domain_restricted_sharing_primus]
+}
 
 #### TO BE DELETED ####
 
