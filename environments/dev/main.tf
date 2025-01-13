@@ -906,6 +906,12 @@ resource "google_org_policy_policy" "disable_domain_restricted_sharing_primus" {
   }
 }
 
+# wait after disabling org policy
+resource "time_sleep" "wait_disable_domain_restricted_sharing_primus" {
+  depends_on       = [google_org_policy_policy.disable_domain_restricted_sharing_primus]
+  create_duration  = "30s"
+}
+
 # IAM entry for Joshua user to write to the Primus Artifact Registry repo
 resource "google_artifact_registry_repository_iam_member" "joshua_primus_ar_reader" {
   provider    = google-beta
@@ -915,7 +921,7 @@ resource "google_artifact_registry_repository_iam_member" "joshua_primus_ar_read
   role        = "roles/artifactregistry.reader"
   member      = "user:jkrstic@google.com"
 
-  depends_on = [time_sleep.disable_domain_restricted_sharing_primus]
+  depends_on = [time_sleep.wait_disable_domain_restricted_sharing_primus]
 }
 
 #### TO BE DELETED ####
