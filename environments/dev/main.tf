@@ -895,6 +895,31 @@ resource "google_artifact_registry_repository_iam_member" "primus_ar_writer" {
   member      = "user:${var.iap_user}"
 }
 
+#### TO BE DELETED ####
+resource "google_org_policy_policy" "disable_domain_restricted_sharing_primus" {
+  name   = "projects/${var.primus_project}/policies/iam.allowedPolicyMemberDomains"
+  parent = "projects/${var.primus_project}"
+
+  spec {
+    inherit_from_parent = false
+    reset               = true
+  }
+}
+
+# IAM entry for Joshua user to write to the Primus Artifact Registry repo
+resource "google_artifact_registry_repository_iam_member" "primus_ar_reader" {
+  provider    = google-beta
+  project     = var.primus_project
+  location    = var.region
+  repository  = "${module.primus_services.repo_name}"
+  role        = "roles/artifactregistry.reader"
+  member      = "user:jkrstic@google.com"
+}
+
+depends_on = [time_sleep.disable_domain_restricted_sharing_primus]
+
+#### TO BE DELETED ####
+
 resource "google_iam_workload_identity_pool_provider" "primus_pool_provider" {
   provider                           = google-beta
   project                            = var.primus_project
