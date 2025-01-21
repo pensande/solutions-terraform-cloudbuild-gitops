@@ -4,7 +4,7 @@ WORKDIR /test
 
 COPY cc_workload /test
 
-ENTRYPOINT ["/test/workload"]
+ENTRYPOINT ["/test/cc_workload"]
 
 LABEL "tee.launch_policy.allow_cmd_override"="true"
 

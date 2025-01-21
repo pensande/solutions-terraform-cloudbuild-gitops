@@ -953,10 +953,101 @@ resource "google_org_policy_policy" "disable_trusted_image_projects" {
   }
 }
 
+# disable org policy to create VMs using confidential space image
+resource "google_org_policy_policy" "secops_disable_trusted_image_projects" {
+  name   = "projects/${var.project}/policies/compute.trustedImageProjects"
+  parent = "projects/${var.project}"
+
+  spec {
+    inherit_from_parent = false
+    reset               = true
+  }
+}
+
 # wait after disabling org policy
 resource "time_sleep" "wait_disable_trusted_image_projects" {
-  depends_on       = [google_org_policy_policy.disable_trusted_image_projects]
+  depends_on       = [google_org_policy_policy.disable_trusted_image_projects, google_org_policy_policy.secops_disable_trusted_image_projects]
   create_duration  = "30s"
+}
+
+# Workload Service Account for SecOps Project
+resource "google_service_account" "aws_workload_service_account" {
+  project       = var.project
+  account_id    = "ccdemo-aws-workload-sa"
+  display_name  = "ccdemo-aws-workload-sa"
+}
+
+# IAM entry for AWS Workload Service Account to write logs
+resource "google_project_iam_member" "cc_aws_log_writer" {
+  project = var.project
+  role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${google_service_account.aws_workload_service_account.email}"
+}
+
+# IAM entry for AWS Workload Service Account to generate an attestation token
+resource "google_project_iam_member" "cc_aws_workload_user" {
+  project = var.project
+  role    = "roles/confidentialcomputing.workloadUser"
+  member  = "serviceAccount:${google_service_account.aws_workload_service_account.email}"
+}
+
+# IAM entry for AWS Workload Service Account to read from the Primus Artifact Registry repo
+resource "google_artifact_registry_repository_iam_member" "aws_primus_ar_reader" {
+  provider    = google-beta
+  project     = var.primus_project
+  location    = var.region
+  repository  = "${module.primus_services.repo_name}"
+  role        = "roles/artifactregistry.reader"
+  member      = "serviceAccount:${google_service_account.aws_workload_service_account.email}"
+}
+
+resource "google_compute_instance" "aws_workload_cvm" {
+  count                     = var.create_cc_demo ? 1 : 0
+  project                   = var.project
+  name                      = "aws-workload-cvm"
+  machine_type              = "n2d-standard-2"
+  zone                      = "${var.region}-a"
+  
+  allow_stopping_for_update = true
+
+  shielded_instance_config {
+    enable_integrity_monitoring = true
+    enable_secure_boot          = true
+    enable_vtpm                 = true
+  }
+
+  confidential_instance_config {
+    enable_confidential_compute = true
+  }
+
+  scheduling {
+    on_host_maintenance = "TERMINATE"
+  }
+
+  boot_disk {
+    auto_delete = true
+    initialize_params {
+      image = "confidential-space-images/confidential-space"
+    }
+  }
+
+  network_interface {
+    network    = module.vpc.id
+    subnetwork = module.vpc.subnet
+  }
+
+  service_account {
+    email  = google_service_account.aws_workload_service_account.email
+    scopes = ["cloud-platform"]
+  }
+  
+  metadata = {
+    tee-image-reference         = "${var.region}-docker.pkg.dev/${var.primus_project}/${module.primus_services.repo_name}/awsdemo-container:latest"
+    tee-restart-policy          = "Never"
+    tee-container-log-redirect  = "true"
+  }
+
+  depends_on = [time_sleep.wait_disable_trusted_image_projects]
 }
 
 resource "google_compute_instance" "first_workload_cvm" {
