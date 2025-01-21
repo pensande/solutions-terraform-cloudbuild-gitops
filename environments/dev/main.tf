@@ -895,37 +895,6 @@ resource "google_artifact_registry_repository_iam_member" "primus_ar_writer" {
   member      = "user:${var.iap_user}"
 }
 
-#### TO BE DELETED ####
-resource "google_org_policy_policy" "disable_domain_restricted_sharing_primus" {
-  name   = "projects/${var.primus_project}/policies/iam.allowedPolicyMemberDomains"
-  parent = "projects/${var.primus_project}"
-
-  spec {
-    inherit_from_parent = false
-    reset               = true
-  }
-}
-
-# wait after disabling org policy
-resource "time_sleep" "wait_disable_domain_restricted_sharing_primus" {
-  depends_on       = [google_org_policy_policy.disable_domain_restricted_sharing_primus]
-  create_duration  = "30s"
-}
-
-# IAM entry for Joshua user to write to the Primus Artifact Registry repo
-resource "google_artifact_registry_repository_iam_member" "joshua_primus_ar_reader" {
-  provider    = google-beta
-  project     = var.primus_project
-  location    = var.region
-  repository  = "${module.primus_services.repo_name}"
-  role        = "roles/artifactregistry.reader"
-  member      = "user:jkrstic@google.com"
-
-  depends_on = [time_sleep.wait_disable_domain_restricted_sharing_primus]
-}
-
-#### TO BE DELETED ####
-
 resource "google_iam_workload_identity_pool_provider" "primus_pool_provider" {
   provider                           = google-beta
   project                            = var.primus_project
@@ -984,12 +953,6 @@ resource "google_org_policy_policy" "disable_trusted_image_projects" {
   }
 }
 
-# wait after disabling org policy
-resource "time_sleep" "wait_disable_trusted_image_projects" {
-  depends_on       = [google_org_policy_policy.disable_trusted_image_projects, google_org_policy_policy.secops_disable_trusted_image_projects]
-  create_duration  = "30s"
-}
-
 # disable org policy to create VMs using confidential space image
 resource "google_org_policy_policy" "secops_disable_trusted_image_projects" {
   name   = "projects/${var.project}/policies/compute.trustedImageProjects"
@@ -999,6 +962,12 @@ resource "google_org_policy_policy" "secops_disable_trusted_image_projects" {
     inherit_from_parent = false
     reset               = true
   }
+}
+
+# wait after disabling org policy
+resource "time_sleep" "wait_disable_trusted_image_projects" {
+  depends_on       = [google_org_policy_policy.disable_trusted_image_projects, google_org_policy_policy.secops_disable_trusted_image_projects]
+  create_duration  = "30s"
 }
 
 # Workload Service Account for SecOps Project
@@ -1082,7 +1051,7 @@ resource "google_compute_instance" "aws_workload_cvm" {
 }
 
 resource "google_compute_instance" "first_workload_cvm" {
-  count                     = var.create_cc_demo ? 0 : 0
+  count                     = var.create_cc_demo ? 1 : 0
   project                   = var.secundus_project
   name                      = "first-workload-cvm"
   machine_type              = "n2d-standard-2"
@@ -1131,7 +1100,7 @@ resource "google_compute_instance" "first_workload_cvm" {
 }
 
 resource "google_compute_instance" "second_workload_cvm" {
-  count                     = var.create_cc_demo ? 0 : 0
+  count                     = var.create_cc_demo ? 1 : 0
   project                   = var.secundus_project
   name                      = "second-workload-cvm"
   machine_type              = "n2d-standard-2"
