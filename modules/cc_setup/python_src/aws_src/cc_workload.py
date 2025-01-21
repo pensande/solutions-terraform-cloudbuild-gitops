@@ -1,7 +1,6 @@
 import json
 import base64
 import boto3
-from botocore.credentials import WebIdentityProvider
 
 # Constants
 SOCKET_PATH = "/run/container_launcher/teeserver.sock"
@@ -10,7 +9,6 @@ CONTENT_TYPE = "application/json"
 AUDIENCE = "https://meal.corp"
 ROLE_ARN = "arn:aws:iam::882493070157:role/confidential-space-role"
 AWS_KMS_KEY_ID = "98ac6406-43e1-488c-b9ae-6fee66d13c4a"
-TOKEN_PATH = "./token"
 TOKEN_TYPE = "LIMITED_AWS"
 AWS_REGION = "eu-west-1"
 AWS_SESSION_NAME = "integration_test"
@@ -19,92 +17,97 @@ OBJECT_KEY = "primus_customer_list_enc"
 
 # Function to get a custom token
 def get_custom_token(body):
-    import requests
-    import socket
+    try:
+        import httpx
 
-    # Use requests library for HTTP communication
-    response = requests.post(
-        TOKEN_ENDPOINT,
-        headers={"Content-Type": CONTENT_TYPE},
-        data=json.dumps(body),
-    )
+        transport = httpx.HTTPTransport(uds=SOCKET_PATH)
+        client = httpx.Client(transport=transport)
+        response = client.post(TOKEN_ENDPOINT, headers={"Content-Type": CONTENT_TYPE}, json=body)
+        print(f"Status_code: {response.status_code}")
+        return response.text
+    except Exception as e:
+        print(f"Error retrieving custom token: {e}")
+        raise
 
-    response.raise_for_status()  # Raise an exception for bad status codes
-    return response.text
-
-# Function to write token to file
-def write_token_to_path(token, token_path):
-    with open(token_path, "w") as f:
-        f.write(token)
+# Function to get a AWS STS token
+def get_aws_token(token):
+    try:
+        # Create a session with the specified profile (if provided)
+        sts_client = boto3.client('sts', region_name=AWS_REGION)
+        response = sts_client.assume_role_with_web_identity(
+            RoleArn=ROLE_ARN,
+            RoleSessionName=AWS_SESSION_NAME,
+            WebIdentityToken=token,
+        )
+        temp_credentials = response["Credentials"]
+        print(f"Assumed role and got temporary credentials.")
+        return temp_credentials
+    except ClientError as error:
+        print(
+            f"Couldn't assume role. Here's why: "
+            f"{error.response['Error']['Message']}"
+        )
+        raise
 
 # Function to fetch blob from S3
-def fetch_blob_from_s3(session, provider):
-    # Use boto3 for AWS interaction
-    s3_client = session.client('s3', config=provider)
+def fetch_blob_from_s3(aws_session):
+
+    # List objects in the bucket
     try:
-        # List objects in the bucket
-        objects = s3_client.list_objects_v2(Bucket=BUCKET_NAME)
-        for obj in objects['Contents']:
-            print(f"Object Key: {obj['Key']}")
+        # Create an S3 client with the new session
+        s3_client = aws_session.client('s3')
         
         # Read the encrypted object from S3
-        response = s3_client.get_object(Bucket=BUCKET_NAME, Key=obj['Key'])
+        response = s3_client.get_object(Bucket=BUCKET_NAME, Key=OBJECT_KEY)
         ciphertext_blob = base64.b64decode(response['Body'].read())
-
-        # Return the ciphertext blob
         return ciphertext_blob
     except Exception as e:
         print(f"Error reading objects: {e}")
+        raise
 
-def main():
-    # Get LIMITED_AWS token
-    body = {
-        "audience": AUDIENCE,
-        "token_type": TOKEN_TYPE,
-    }
-
-    token = get_custom_token(body)
-    print(f"Token received: {token}")
-
-    # AWS Module requires a token path for some reason
-    write_token_to_path(token, TOKEN_PATH)
-
-    # Create a boto3 session
-    session = boto3.Session(region_name=AWS_REGION)
-
-    # Create a WebIdentityProvider
-    provider = WebIdentityProvider(
-        role_arn=ROLE_ARN,
-        web_identity_token_path=TOKEN_PATH,
-        client=session.client('sts'),
-        session_name=AWS_SESSION_NAME,
-    )
-
-    # Download data from AWS
-    blob_from_s3 = fetch_blob_from_s3(session, provider)
-
+# Function to decrypt ciphertext blob
+def decrypt_ciphertext_blob(aws_session, ciphertext_blob):
     try:
-        # Call Decrypt
-        kms_client = session.client('kms', config=provider)
+        # Create a KMS client with the new session
+        kms_client = aws_session.client('kms', region_name=AWS_REGION)
+
+        # Decrypt the ciphertext using KMS
         decrypted_result = kms_client.decrypt(
-            KeyId=AWS_KMS_KEY_ID,
-            CiphertextBlob=blob_from_s3,
+            CiphertextBlob=ciphertext_blob,
+            KeyId=AWS_KMS_KEY_ID  # Optional if the key ID is in the ciphertext
         )
 
         # Decode the plaintext from bytes to string
-        plaintext = decrypted_result['Plaintext'].decode('utf-8')
-
+        plaintext = decrypted_result['Plaintext'].decode('utf-8')        
         print(f"Decrypt Succeeded: {plaintext}")
+        return plaintext
     except Exception as e:
         print(f"Error decrypting object: {e}")
-        return None
+        raise
 
 if __name__ == "__main__":
     print("-" * 88)
     print(f"Welcome to the IAM create user and assume role demo.")
     print("-" * 88)
     try:
-        main()
+        # Get LIMITED_AWS token
+        body = {
+            "audience": AUDIENCE,
+            "token_type": TOKEN_TYPE,
+        }
+        token = get_custom_token(body)
+        
+        temp_credentials = get_aws_token(token)
+
+        # Create a new session with the temporary credentials
+        aws_session = boto3.Session(
+            aws_access_key_id=temp_credentials['AccessKeyId'],
+            aws_secret_access_key=temp_credentials['SecretAccessKey'],
+            aws_session_token=temp_credentials['SessionToken']
+        )
+    
+        ciphertext_blob = fetch_blob_from_s3(aws_session)    
+        decrypt_ciphertext_blob(aws_session, ciphertext_blob)
     except Exception:
         print("Something went wrong!")
     finally:
