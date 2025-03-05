@@ -1980,3 +1980,34 @@ resource "google_compute_forwarding_rule" "aadhaar_vault_psc_consumer_forwarding
   target                  = google_compute_service_attachment.aadhaar_vault_psc_service_attachment[0].id
   network                 = var.vpc
 }
+
+##############################
+## Serverless Security Demo ##
+##############################
+
+# GCS bucket to store secure tokens
+resource "google_storage_bucket" "token_bucket" {
+  name                          = "${var.project}-token-bucket"
+  location                      = var.region
+  uniform_bucket_level_access   = true
+}
+
+module "serverless-security-cloud-function" {
+    source          = "../../modules/cloud_function"
+    project         = var.project
+    function-name   = "serverless-security"
+    function-desc   = "generates random tokens and stores them in a bucket"
+    entry-point     = "serverless_security"
+    env-vars        = {
+        PROJECT_NAME  = var.project,
+        TOKEN_BUCKET  = google_storage_bucket.token_bucket.name
+        TOKEN_OBJECT  = "secure_token"
+    }
+}
+
+# IAM entry for service account of serverless-security function over token bucket
+resource "google_storage_bucket_iam_member" "raw_bucket_read" {
+  bucket  = google_storage_bucket.token_bucket.name
+  role    = "roles/storage.objectUser"
+  member  = "serviceAccount:${module.serverless-security-cloud-function.sa-email}"
+}
