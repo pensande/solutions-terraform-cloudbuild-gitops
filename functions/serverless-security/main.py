@@ -25,10 +25,14 @@ def serverless_security(request):
           # Generate a random token
           length = 8
           secure_token = ''.join(random.choices(string.ascii_letters + string.digits, k=length))
-          print(secure_token)
-    
-          # Upload the error message to the bucket
+          
+          # Upload the secure token to the bucket
           object_handle.upload_from_string(secure_token)
-    
+          info = f"Successfully stored secure token to bucket: {secure_token}"   
      except Exception as e:
-          raise RuntimeError(f"Could not write secure token to bucket: {e}")
+          info = f"Could not write secure token to bucket: {e}"
+     
+     data = {
+        "info": info
+     }
+     return json.dumps(data), 200, {'Content-Type': 'application/json'}
