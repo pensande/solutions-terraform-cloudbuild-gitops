@@ -2011,3 +2011,20 @@ resource "google_storage_bucket_iam_member" "raw_bucket_read" {
   role    = "roles/storage.objectUser"
   member  = "serviceAccount:${module.serverless-security-cloud-function.sa-email}"
 }
+
+resource "google_access_context_manager_access_policy" "ss_demo_access_policy" {
+  count   = var.create_ss_demo ? 1 : 0
+  parent  = "projects/${var.project}"
+  title   = "serverless_security_demo"
+}
+
+resource "google_access_context_manager_service_perimeter" "service-perimeter" {
+  count   = var.create_ss_demo ? 1 : 0
+  parent  = "accessPolicies/${google_access_context_manager_access_policy.ss_demo_access_policy[0].name}"
+  name    = "accessPolicies/${google_access_context_manager_access_policy.ss_demo_access_policy[0].name}/servicePerimeters/restrict_storage"
+  title   = "serverless_security_demo"
+  status {
+    resources           = ["projects/${var.project}"]
+    restricted_services = ["storage.googleapis.com"]
+  }
+}

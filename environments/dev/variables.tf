@@ -211,3 +211,9 @@ variable "create_aadhaar_vault_demo" {
 variable "aadhaar_vault_region" {
   type          = string
 }
+
+variable "create_ss_demo" {
+  description   = "If set to true, it will create the serverless security demo"
+  type          = bool
+  default       = false
+}
