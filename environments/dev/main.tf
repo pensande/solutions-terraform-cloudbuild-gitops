@@ -2025,7 +2025,7 @@ resource "google_access_context_manager_service_perimeter" "service-perimeter" {
   name    = "accessPolicies/${google_access_context_manager_access_policy.ss_demo_access_policy[0].name}/servicePerimeters/restrict_storage"
   title   = "serverless_security_demo"
   status {
-    resources           = ["projects/${var.project}"]
+    resources           = ["projects/${data.google_project.project.number}"]
     restricted_services = ["storage.googleapis.com"]
   }
 }
