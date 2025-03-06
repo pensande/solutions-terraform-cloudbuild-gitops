@@ -2042,7 +2042,7 @@ resource "google_access_context_manager_service_perimeter" "service-perimeter" {
           service_name = "storage.googleapis.com"
 
           method_selectors {
-            method = "storage.objects.create"
+            method = "google.storage.objects.create"
           }
         }
       }
