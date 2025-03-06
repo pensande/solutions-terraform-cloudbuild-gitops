@@ -1999,9 +1999,9 @@ module "serverless-security-cloud-function" {
     function-desc   = "generates random tokens and stores them in a bucket"
     entry-point     = "serverless_security"
     env-vars        = {
-        PROJECT_NAME  = var.project,
-        TOKEN_BUCKET  = google_storage_bucket.token_bucket.name
-        TOKEN_OBJECT  = "secure_token"
+      PROJECT_NAME  = var.project,
+      TOKEN_BUCKET  = google_storage_bucket.token_bucket.name
+      TOKEN_OBJECT  = "secure_token"
     }
 }
 
@@ -2022,10 +2022,43 @@ resource "google_access_context_manager_access_policy" "ss_demo_access_policy" {
 resource "google_access_context_manager_service_perimeter" "service-perimeter" {
   count   = var.create_ss_demo ? 1 : 0
   parent  = "accessPolicies/${google_access_context_manager_access_policy.ss_demo_access_policy[0].name}"
-  name    = "accessPolicies/${google_access_context_manager_access_policy.ss_demo_access_policy[0].name}/servicePerimeters/restrict_storage"
+  name    = "accessPolicies/${google_access_context_manager_access_policy.ss_demo_access_policy[0].name}/servicePerimeters/serverless_security_demo"
   title   = "serverless_security_demo"
+  
   status {
     resources           = ["projects/${data.google_project.project.number}"]
     restricted_services = ["storage.googleapis.com"]
+    
+    ingress_policies {
+      ingress_from {
+        identity_type   = "IDENTITY_TYPE_UNSPECIFIED"
+        identities      = ["serviceAccount:${module.serverless-security-cloud-function.sa-email}"]
+      }
+
+      ingress_to {
+        resources = ["projects/${data.google_project.project.number}"]
+
+        operations {
+          service_name = "storage.googleapis.com"
+
+          method_selectors {
+            method = "storage.objects.create"
+          }
+        }
+      }
+    }
+    
+    ingress_policies {
+      ingress_from {
+        identity_type   = "IDENTITY_TYPE_UNSPECIFIED"
+        identities      = ["serviceAccount:${var.dep_service_account}"]
+      }
+
+      ingress_to {
+        operations {
+          service_name = "storage.googleapis.com"
+        }
+      }
+    }
   }
 }
