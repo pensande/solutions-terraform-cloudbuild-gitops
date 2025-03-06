@@ -2014,8 +2014,9 @@ resource "google_storage_bucket_iam_member" "raw_bucket_read" {
 
 resource "google_access_context_manager_access_policy" "ss_demo_access_policy" {
   count   = var.create_ss_demo ? 1 : 0
-  parent  = "projects/${var.project}"
+  parent  = "organizations/${var.organization}"
   title   = "serverless_security_demo"
+  scopes  = ["projects/${var.project}"]
 }
 
 resource "google_access_context_manager_service_perimeter" "service-perimeter" {
