@@ -2006,10 +2006,79 @@ module "serverless-security-cloud-function" {
 }
 
 # IAM entry for service account of serverless-security function over token bucket
-resource "google_storage_bucket_iam_member" "raw_bucket_read" {
+resource "google_storage_bucket_iam_member" "ss_demo_function_bucket_read" {
   bucket  = google_storage_bucket.token_bucket.name
   role    = "roles/storage.objectUser"
   member  = "serviceAccount:${module.serverless-security-cloud-function.sa-email}"
+}
+
+# Cloud Run service to read secure tokens
+resource "google_cloud_run_service" "serveress_security_run_service" {
+  count     = var.create_ss_demo ? 1 : 0
+  name      = "serverless-security-demo"
+  location  = var.region
+
+  template {
+    spec {
+      containers {
+        image   = "us-central1-docker.pkg.dev/secops-project-348011/binauthz-demo-repo/iap-run-sql-demo@sha256:5988b1f921be502339fee2ada7fbd9046e9cfc4ee731e22c3c7045d35f3bd0a2"
+        ports {
+          container_port = 8080
+        }
+        env {
+          name = "PROJECT_NAME"
+          value = var.project
+        }
+        env {
+          name = "TOKEN_BUCKET"
+          value = google_storage_bucket.token_bucket.name
+        }
+        env {
+          name = "TOKEN_OBJECT"
+          value = "secure_token"
+        }
+      }
+      service_account_name = google_service_account.run_ss_demo_service_account[0].email
+    }
+    metadata {
+      annotations = {
+        "autoscaling.knative.dev/maxScale"      = "2"
+        "run.googleapis.com/client-name"        = "terraform"
+      }
+    }
+  }
+
+  metadata {
+    annotations = {
+      "run.googleapis.com/ingress"            = "internal-and-cloud-load-balancing"
+    }
+  }
+
+  traffic {
+    percent         = 100
+    latest_revision = true
+  }
+
+  lifecycle {
+    ignore_changes = [
+      metadata[0].annotations,
+    ]
+  }
+}
+
+# service account for cloud run
+resource "google_service_account" "run_ss_demo_service_account" {
+  count         = var.create_ss_demo ? 1 : 0
+  account_id    = "sa-run-ss-demo"
+  display_name  = "sa-run-ss-demo"
+}
+
+# IAM entry for service account of serverless-security run service over token bucket
+resource "google_storage_bucket_iam_member" "ss_demo_run_bucket_read" {
+  count   = var.create_ss_demo ? 1 : 0
+  bucket  = google_storage_bucket.token_bucket.name
+  role    = "roles/storage.objectUser"
+  member  = "serviceAccount:${google_service_account.run_ss_demo_service_account[0].email}"
 }
 
 resource "google_access_context_manager_access_policy" "ss_demo_access_policy" {
