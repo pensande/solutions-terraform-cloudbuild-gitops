@@ -36,4 +36,4 @@ vpcsc_log_router_aggregated_sink = "vpcsc_denials"
 vpcsc_email_address = "agarsand@google.com"
 create_aadhaar_vault_demo = false
 aadhaar_vault_region = "asia-south1"
-create_ss_demo = true
+create_ss_demo = false
