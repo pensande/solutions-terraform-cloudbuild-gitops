@@ -3,7 +3,7 @@ import json
 import base64
 import random
 import string
-from google.cloud import storage
+from google.cloud import storage, kms
 
 def serverless_security(request):
      
@@ -14,6 +14,7 @@ def serverless_security(request):
           project_name   = os.environ.get('PROJECT_NAME')
           token_bucket   = os.environ.get('TOKEN_BUCKET')
           token_object   = os.environ.get('TOKEN_OBJECT')
+          key_name       = os.environ.get('KEY_NAME')
      
           # Create a Storage client
           storage_client = storage.Client(project=project_name)
@@ -25,10 +26,26 @@ def serverless_security(request):
           # Generate a random token
           length = 8
           secure_token = ''.join(random.choices(string.ascii_letters + string.digits, k=length))
-          
+
+          # Convert the secure_token plaintext to bytes.
+          plaintext_bytes = secure_token.encode("utf-8")
+
+          # Create a KMS client
+          kms_client = kms.KeyManagementServiceClient()
+
+          print(key_name)
+
+          # Call the KMS API to encrypt the secure_token plaintext
+          encrypt_response = kms_client.encrypt(
+               request={
+                    "name": key_name,
+                    "plaintext": plaintext_bytes,
+               }
+          )
+
           # Upload the secure token to the bucket
-          object_handle.upload_from_string(secure_token)
-          info = f"Successfully stored secure token to bucket: {secure_token}"   
+          object_handle.upload_from_string(base64.b64encode(encrypt_response.ciphertext))
+          info = f"Successfully stored secure token to bucket: {secure_token}"
      except Exception as e:
           info = f"Could not write secure token to bucket: {e}"
      

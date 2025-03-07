@@ -1992,6 +1992,34 @@ resource "google_storage_bucket" "token_bucket" {
   uniform_bucket_level_access   = true
 }
 
+# KMS resources
+resource "google_kms_key_ring" "serverless_security_demo_keyring" {
+  project  = var.project
+  name     = "serverless-security-demo-keyring"
+  location = var.region
+}
+
+resource "google_kms_crypto_key" "serverless_security_demo_key" {
+  name     = "serverless-security-demo-key"
+  key_ring = google_kms_key_ring.serverless_security_demo_keyring.id
+  purpose  = "ENCRYPT_DECRYPT"
+
+  version_template {
+    algorithm           = "GOOGLE_SYMMETRIC_ENCRYPTION"
+    protection_level    = "SOFTWARE"
+  }
+
+  rotation_period = "31536000s"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+data "google_kms_crypto_key_version" "serverless_security_demo_key_version" {
+  crypto_key = google_kms_crypto_key.serverless_security_demo_key.id
+}
+
 module "serverless-security-cloud-function" {
     source          = "../../modules/cloud_function"
     project         = var.project
@@ -2002,6 +2030,7 @@ module "serverless-security-cloud-function" {
       PROJECT_NAME  = var.project,
       TOKEN_BUCKET  = google_storage_bucket.token_bucket.name
       TOKEN_OBJECT  = "secure_token"
+      KMS_KEY       = google_kms_crypto_key.serverless_security_demo_key.id
     }
 }
 
@@ -2037,6 +2066,10 @@ resource "google_cloud_run_service" "serveress_security_run_service" {
           name = "TOKEN_OBJECT"
           value = "secure_token"
         }
+        env {
+          name = "KMS_KEY"
+          value = google_kms_crypto_key.serverless_security_demo_key.id
+        }
       }
       service_account_name = google_service_account.run_ss_demo_service_account[0].email
     }
@@ -2066,7 +2099,7 @@ resource "google_cloud_run_service" "serveress_security_run_service" {
   }
 }
 
-# service account for cloud run
+# service account for cloud run service
 resource "google_service_account" "run_ss_demo_service_account" {
   count         = var.create_ss_demo ? 1 : 0
   account_id    = "sa-run-ss-demo"
@@ -2079,6 +2112,20 @@ resource "google_storage_bucket_iam_member" "ss_demo_run_bucket_read" {
   bucket  = google_storage_bucket.token_bucket.name
   role    = "roles/storage.objectUser"
   member  = "serviceAccount:${google_service_account.run_ss_demo_service_account[0].email}"
+}
+
+# IAM entry for the serverless-security function to encrypt using the kms key
+resource "google_kms_crypto_key_iam_member" "ss_demo_key_encrypter" {
+  crypto_key_id = google_kms_crypto_key.serverless_security_demo_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypter"
+  member        = "serviceAccount:${module.serverless-security-cloud-function.sa-email}"
+}
+
+# IAM entry for the serverless-security run service to decrypt using the kms key
+resource "google_kms_crypto_key_iam_member" "ss_demo_key_decrypter" {
+  crypto_key_id = google_kms_crypto_key.serverless_security_demo_key.id
+  role          = "roles/cloudkms.cryptoKeyDecrypter"
+  member        = "serviceAccount:${google_service_account.run_ss_demo_service_account[0].email}"
 }
 
 # IAM entry for pensande user to invoke serverless-security run service
