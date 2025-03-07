@@ -2021,7 +2021,7 @@ resource "google_cloud_run_service" "serveress_security_run_service" {
   template {
     spec {
       containers {
-        image   = "us-central1-docker.pkg.dev/secops-project-348011/binauthz-demo-repo/iap-run-sql-demo@sha256:5988b1f921be502339fee2ada7fbd9046e9cfc4ee731e22c3c7045d35f3bd0a2"
+        image   = "us-central1-docker.pkg.dev/secops-project-348011/binauthz-demo-repo/serverless-security-demo:latest"
         ports {
           container_port = 8080
         }
@@ -2079,6 +2079,15 @@ resource "google_storage_bucket_iam_member" "ss_demo_run_bucket_read" {
   bucket  = google_storage_bucket.token_bucket.name
   role    = "roles/storage.objectUser"
   member  = "serviceAccount:${google_service_account.run_ss_demo_service_account[0].email}"
+}
+
+# IAM entry for pensande user to invoke serverless-security run service
+resource "google_cloud_run_service_iam_member" "pensande_ss_demo_run" {
+  count     = var.create_ss_demo ? 1 : 0
+  service   = google_cloud_run_service.serveress_security_run_service[0].name
+  location  = google_cloud_run_service.serveress_security_run_service[0].location
+  role      = "roles/run.invoker"
+  member    = "user:${var.iap_user}"
 }
 
 resource "google_access_context_manager_access_policy" "ss_demo_access_policy" {
