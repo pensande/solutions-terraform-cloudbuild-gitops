@@ -2032,29 +2032,12 @@ resource "google_access_context_manager_service_perimeter" "service-perimeter" {
     ingress_policies {
       ingress_from {
         identity_type   = "IDENTITY_TYPE_UNSPECIFIED"
-        identities      = ["serviceAccount:${module.serverless-security-cloud-function.sa-email}"]
+        identities      = ["serviceAccount:${module.serverless-security-cloud-function.sa-email}","serviceAccount:${var.dep_service_account}"]
       }
 
       ingress_to {
         resources = ["projects/${data.google_project.project.number}"]
 
-        operations {
-          service_name = "storage.googleapis.com"
-
-          method_selectors {
-            method = "google.storage.objects.create"
-          }
-        }
-      }
-    }
-    
-    ingress_policies {
-      ingress_from {
-        identity_type   = "IDENTITY_TYPE_UNSPECIFIED"
-        identities      = ["serviceAccount:${var.dep_service_account}"]
-      }
-
-      ingress_to {
         operations {
           service_name = "storage.googleapis.com"
 
