@@ -2116,9 +2116,27 @@ resource "google_access_context_manager_service_perimeter" "service-perimeter" {
           method_selectors {
             method = "google.storage.objects.create"
           }
+        }
+      }
+    }
+
+    ingress_policies {
+      ingress_from {
+        sources {
+          access_level = "*"
+        }
+        identity_type   = "IDENTITY_TYPE_UNSPECIFIED"
+        identities      = ["serviceAccount:${google_service_account.run_ss_demo_service_account[0].email}"]
+      }
+
+      ingress_to {
+        resources = ["projects/${data.google_project.project.number}"]
+
+        operations {
+          service_name = "storage.googleapis.com"
 
           method_selectors {
-            method = "google.storage.buckets.testIamPermissions"
+            method = "google.storage.objects.get"
           }
         }
       }
