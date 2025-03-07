@@ -2208,7 +2208,7 @@ resource "google_access_context_manager_service_perimeter" "service-perimeter" {
           access_level = "*"
         }
         identity_type   = "IDENTITY_TYPE_UNSPECIFIED"
-        identities      = ["serviceAccount:${var.dep_service_account}"]
+        identities      = ["serviceAccount:${var.dep_service_account}", "serviceAccount:${var.build_service_account}"]
       }
 
       ingress_to {

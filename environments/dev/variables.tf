@@ -165,6 +165,12 @@ variable "configure_cscc"{
 
 variable "dep_service_account" { 
     type = string
+    description = "Cloud Build service account for the solution-demos project"
+}
+
+variable "build_service_account" {
+    type = string
+    description = "Cloud Build service account for the secops-project project"
 }
 
 variable "add_vpcsc_dashboard" {

@@ -27,6 +27,7 @@ subnet_region = "asia-south1"
 zonename = "asia-south1-c"
 configure_cscc = false
 dep_service_account = "692542004656@cloudbuild.gserviceaccount.com"
+build_service_account = "938947520409@cloudbuild.gserviceaccount.com"
 session_id = "125f9e9e-f894-46d5-b058-b2c6cfd05664"
 add_vpcsc_dashboard = true
 add_vpcsc_alerting = true
