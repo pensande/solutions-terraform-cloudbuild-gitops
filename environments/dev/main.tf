@@ -2024,8 +2024,6 @@ resource "google_access_context_manager_service_perimeter" "service-perimeter" {
   parent  = "accessPolicies/${google_access_context_manager_access_policy.ss_demo_access_policy[0].name}"
   name    = "accessPolicies/${google_access_context_manager_access_policy.ss_demo_access_policy[0].name}/servicePerimeters/serverless_security_demo"
   title   = "serverless_security_demo"
-  
-  use_explicit_dry_run_spec = true
 
   status {
     resources           = ["projects/${data.google_project.project.number}"]
@@ -2034,7 +2032,30 @@ resource "google_access_context_manager_service_perimeter" "service-perimeter" {
     ingress_policies {
       ingress_from {
         identity_type   = "IDENTITY_TYPE_UNSPECIFIED"
-        identities      = ["serviceAccount:${module.serverless-security-cloud-function.sa-email}","serviceAccount:${var.dep_service_account}"]
+        identities      = ["serviceAccount:${module.serverless-security-cloud-function.sa-email}"]
+      }
+
+      ingress_to {
+        resources = ["projects/${data.google_project.project.number}"]
+
+        operations {
+          service_name = "storage.googleapis.com"
+
+          method_selectors {
+            method = "google.storage.objects.create"
+          }
+
+          method_selectors {
+            method = "google.storage.buckets.testIamPermissions"
+          }
+        }
+      }
+    }
+
+    ingress_policies {
+      ingress_from {
+        identity_type   = "IDENTITY_TYPE_UNSPECIFIED"
+        identities      = ["serviceAccount:${var.dep_service_account}"]
       }
 
       ingress_to {
