@@ -2031,6 +2031,9 @@ resource "google_access_context_manager_service_perimeter" "service-perimeter" {
     
     ingress_policies {
       ingress_from {
+        sources {
+          access_level = "*"
+        }
         identity_type   = "IDENTITY_TYPE_UNSPECIFIED"
         identities      = ["serviceAccount:${module.serverless-security-cloud-function.sa-email}"]
       }
@@ -2054,6 +2057,9 @@ resource "google_access_context_manager_service_perimeter" "service-perimeter" {
 
     ingress_policies {
       ingress_from {
+        sources {
+          access_level = "*"
+        }
         identity_type   = "IDENTITY_TYPE_UNSPECIFIED"
         identities      = ["serviceAccount:${var.dep_service_account}"]
       }
