@@ -2125,6 +2125,10 @@ resource "google_access_context_manager_service_perimeter" "service-perimeter" {
           method_selectors {
             method = "google.storage.objects.create"
           }
+
+          method_selectors {
+            method = "google.storage.buckets.testIamPermissions"
+          }
         }
       }
     }
