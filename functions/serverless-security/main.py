@@ -14,7 +14,7 @@ def serverless_security(request):
           project_name   = os.environ.get('PROJECT_NAME')
           token_bucket   = os.environ.get('TOKEN_BUCKET')
           token_object   = os.environ.get('TOKEN_OBJECT')
-          key_name       = os.environ.get('KEY_NAME')
+          kms_key       = os.environ.get('KMS_KEY')
      
           # Create a Storage client
           storage_client = storage.Client(project=project_name)
@@ -33,12 +33,12 @@ def serverless_security(request):
           # Create a KMS client
           kms_client = kms.KeyManagementServiceClient()
 
-          print(key_name)
+          print(kms_key)
 
           # Call the KMS API to encrypt the secure_token plaintext
           encrypt_response = kms_client.encrypt(
                request={
-                    "name": key_name,
+                    "name": kms_key,
                     "plaintext": plaintext_bytes,
                }
           )

@@ -2123,6 +2123,7 @@ resource "google_kms_crypto_key_iam_member" "ss_demo_key_encrypter" {
 
 # IAM entry for the serverless-security run service to decrypt using the kms key
 resource "google_kms_crypto_key_iam_member" "ss_demo_key_decrypter" {
+  count         = var.create_ss_demo ? 1 : 0
   crypto_key_id = google_kms_crypto_key.serverless_security_demo_key.id
   role          = "roles/cloudkms.cryptoKeyDecrypter"
   member        = "serviceAccount:${google_service_account.run_ss_demo_service_account[0].email}"
