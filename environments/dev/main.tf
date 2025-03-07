@@ -1980,3 +1980,217 @@ resource "google_compute_forwarding_rule" "aadhaar_vault_psc_consumer_forwarding
   target                  = google_compute_service_attachment.aadhaar_vault_psc_service_attachment[0].id
   network                 = var.vpc
 }
+
+##############################
+## Serverless Security Demo ##
+##############################
+
+# GCS bucket to store secure tokens
+resource "google_storage_bucket" "token_bucket" {
+  name                          = "${var.project}-token-bucket"
+  location                      = var.region
+  uniform_bucket_level_access   = true
+}
+
+# KMS resources
+resource "google_kms_key_ring" "serverless_security_demo_keyring" {
+  project  = var.project
+  name     = "serverless-security-demo-keyring"
+  location = var.region
+}
+
+resource "google_kms_crypto_key" "serverless_security_demo_key" {
+  name     = "serverless-security-demo-key"
+  key_ring = google_kms_key_ring.serverless_security_demo_keyring.id
+  purpose  = "ENCRYPT_DECRYPT"
+
+  version_template {
+    algorithm           = "GOOGLE_SYMMETRIC_ENCRYPTION"
+    protection_level    = "SOFTWARE"
+  }
+
+  rotation_period = "31536000s"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+data "google_kms_crypto_key_version" "serverless_security_demo_key_version" {
+  crypto_key = google_kms_crypto_key.serverless_security_demo_key.id
+}
+
+module "serverless-security-cloud-function" {
+    source          = "../../modules/cloud_function"
+    project         = var.project
+    function-name   = "serverless-security"
+    function-desc   = "generates random tokens and stores them in a bucket"
+    entry-point     = "serverless_security"
+    env-vars        = {
+      PROJECT_NAME  = var.project,
+      TOKEN_BUCKET  = google_storage_bucket.token_bucket.name
+      TOKEN_OBJECT  = "secure_token"
+      KMS_KEY       = google_kms_crypto_key.serverless_security_demo_key.id
+    }
+}
+
+# IAM entry for service account of serverless-security function over token bucket
+resource "google_storage_bucket_iam_member" "ss_demo_function_bucket_read" {
+  bucket  = google_storage_bucket.token_bucket.name
+  role    = "roles/storage.objectUser"
+  member  = "serviceAccount:${module.serverless-security-cloud-function.sa-email}"
+}
+
+# Cloud Run service to read secure tokens
+resource "google_cloud_run_v2_service" "serveress_security_run_service" {
+  count     = var.create_ss_demo ? 1 : 0
+  name      = "serverless-security-demo"
+  project   = var.project
+  location  = var.region
+  ingress   = "INGRESS_TRAFFIC_ALL"
+  
+  template {
+    containers {
+      image   = "us-central1-docker.pkg.dev/secops-project-348011/binauthz-demo-repo/serverless-security-demo:latest"
+      ports {
+        container_port = 8080
+      }
+      env {
+        name = "PROJECT_NAME"
+        value = var.project
+      }
+      env {
+        name = "TOKEN_BUCKET"
+        value = google_storage_bucket.token_bucket.name
+      }
+      env {
+        name = "TOKEN_OBJECT"
+        value = "secure_token"
+      }
+      env {
+        name = "KMS_KEY"
+        value = google_kms_crypto_key.serverless_security_demo_key.id
+      }
+    }
+    
+    service_account = google_service_account.run_ss_demo_service_account[0].email
+    
+    scaling {
+      max_instance_count = 2
+    }
+
+    vpc_access{
+      network_interfaces {
+        network     = module.vpc.id
+        subnetwork  = module.vpc.subnet
+      }
+      egress = "ALL_TRAFFIC"
+    }
+  }
+}
+
+# service account for cloud run service
+resource "google_service_account" "run_ss_demo_service_account" {
+  count         = var.create_ss_demo ? 1 : 0
+  account_id    = "sa-run-ss-demo"
+  display_name  = "sa-run-ss-demo"
+}
+
+# IAM entry for service account of serverless-security run service over token bucket
+resource "google_storage_bucket_iam_member" "ss_demo_run_bucket_read" {
+  count   = var.create_ss_demo ? 1 : 0
+  bucket  = google_storage_bucket.token_bucket.name
+  role    = "roles/storage.objectUser"
+  member  = "serviceAccount:${google_service_account.run_ss_demo_service_account[0].email}"
+}
+
+# IAM entry for the serverless-security function to encrypt using the kms key
+resource "google_kms_crypto_key_iam_member" "ss_demo_key_encrypter" {
+  crypto_key_id = google_kms_crypto_key.serverless_security_demo_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypter"
+  member        = "serviceAccount:${module.serverless-security-cloud-function.sa-email}"
+}
+
+# IAM entry for the serverless-security run service to decrypt using the kms key
+resource "google_kms_crypto_key_iam_member" "ss_demo_key_decrypter" {
+  count         = var.create_ss_demo ? 1 : 0
+  crypto_key_id = google_kms_crypto_key.serverless_security_demo_key.id
+  role          = "roles/cloudkms.cryptoKeyDecrypter"
+  member        = "serviceAccount:${google_service_account.run_ss_demo_service_account[0].email}"
+}
+
+# IAM entry for pensande user to invoke serverless-security run service
+resource "google_cloud_run_v2_service_iam_member" "pensande_ss_demo_run" {
+  count     = var.create_ss_demo ? 1 : 0
+  name      = google_cloud_run_v2_service.serveress_security_run_service[0].name
+  location  = google_cloud_run_v2_service.serveress_security_run_service[0].location
+  role      = "roles/run.invoker"
+  member    = "user:${var.iap_user}"
+}
+
+resource "google_access_context_manager_access_policy" "ss_demo_access_policy" {
+  count   = var.create_ss_demo ? 1 : 0
+  parent  = "organizations/${var.organization}"
+  title   = "serverless_security_demo"
+  scopes  = ["projects/${data.google_project.project.number}"]
+}
+
+resource "google_access_context_manager_service_perimeter" "service-perimeter" {
+  count   = var.create_ss_demo ? 1 : 0
+  parent  = "accessPolicies/${google_access_context_manager_access_policy.ss_demo_access_policy[0].name}"
+  name    = "accessPolicies/${google_access_context_manager_access_policy.ss_demo_access_policy[0].name}/servicePerimeters/serverless_security_demo"
+  title   = "serverless_security_demo"
+
+  status {
+    resources           = ["projects/${data.google_project.project.number}"]
+    restricted_services = ["storage.googleapis.com"]
+    
+    ingress_policies {
+      ingress_from {
+        sources {
+          access_level = "*"
+        }
+        identity_type   = "IDENTITY_TYPE_UNSPECIFIED"
+        identities      = ["serviceAccount:${module.serverless-security-cloud-function.sa-email}"]
+      }
+
+      ingress_to {
+        resources = ["projects/${data.google_project.project.number}"]
+
+        operations {
+          service_name = "storage.googleapis.com"
+
+          method_selectors {
+            method = "google.storage.objects.create"
+          }
+
+          method_selectors {
+            method = "google.storage.buckets.testIamPermissions"
+          }
+        }
+      }
+    }
+
+    ingress_policies {
+      ingress_from {
+        sources {
+          access_level = "*"
+        }
+        identity_type   = "IDENTITY_TYPE_UNSPECIFIED"
+        identities      = ["serviceAccount:${var.dep_service_account}", "serviceAccount:${var.build_service_account}"]
+      }
+
+      ingress_to {
+        resources = ["projects/${data.google_project.project.number}"]
+
+        operations {
+          service_name = "storage.googleapis.com"
+
+          method_selectors {
+            method = "*"
+          }
+        }
+      }
+    }
+  }
+}
