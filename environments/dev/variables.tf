@@ -223,3 +223,8 @@ variable "create_ss_demo" {
   type          = bool
   default       = false
 }
+
+variable "datadog_principal" {
+  type        = string
+  description = "Datadog Principal to monitor GCP"
+}

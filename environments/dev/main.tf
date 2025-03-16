@@ -2194,3 +2194,21 @@ resource "google_access_context_manager_service_perimeter" "service-perimeter" {
     }
   }
 }
+
+###########################
+## Datadog Security Demo ##
+###########################
+
+# Service Account for Datadog Security
+resource "google_service_account" "datadog_security_sa" {
+  project       = var.project
+  account_id    = "datadog-security-sa"
+  display_name  = "Datadog Security Service Account"
+}
+
+# IAM entry for the Datadog principal to use the Datadog Security service account
+resource "google_service_account_iam_member" "datadog_security_sa_role" {
+  service_account_id = google_service_account.datadog_security_sa.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${var.datadog_principal}"
+}
