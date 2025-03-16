@@ -2201,12 +2201,14 @@ resource "google_access_context_manager_service_perimeter" "service-perimeter" {
 
 # Service Account for Datadog Security
 resource "google_service_account" "datadog_security_sa" {
+  count         = var.create_datadog_demo ? 1 : 0
   project       = var.project
   account_id    = "datadog-security-sa"
   display_name  = "Datadog Security Service Account"
 }
 
 resource "google_org_policy_policy" "disable_domain_restricted_sharing" {
+  count   = var.create_datadog_demo ? 1 : 0
   name   = "projects/${var.project}/policies/iam.allowedPolicyMemberDomains"
   parent = "projects/${var.project}"
 
@@ -2218,15 +2220,23 @@ resource "google_org_policy_policy" "disable_domain_restricted_sharing" {
 
 # wait after disabling org policy
 resource "time_sleep" "wait_disable_domain_restricted_sharing" {
-  depends_on       = [google_org_policy_policy.disable_domain_restricted_sharing]
-  create_duration  = "30s"
+  count           = var.create_datadog_demo ? 1 : 0
+  depends_on      = [google_org_policy_policy.disable_domain_restricted_sharing[0]]
+  create_duration = "60s"
 }
 
 # IAM entry for the Datadog principal to use the Datadog Security service account
-resource "google_service_account_iam_member" "datadog_security_sa_role" {
-  service_account_id  = google_service_account.datadog_security_sa.name
+resource "google_service_account_iam_member" "datadog_security_sa_token_creator" {
+  service_account_id  = google_service_account.datadog_security_sa[0].name
   role                = "roles/iam.serviceAccountTokenCreator"
   member              = "serviceAccount:${var.datadog_principal}"
 
-  depends_on          = [ time_sleep.wait_disable_domain_restricted_sharing ]
+  depends_on          = [time_sleep.wait_disable_domain_restricted_sharing[0]]
+}
+
+resource "google_organization_iam_member" "datadog_security_sa_reader" {
+  count   = var.create_datadog_demo ? 1 : 0 
+  org_id  = "${var.organization}"
+  role    = "roles/reader"
+  member  = "serviceAccount:${google_service_account.datadog_security_sa[0].email}"
 }
