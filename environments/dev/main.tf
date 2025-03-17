@@ -2240,3 +2240,31 @@ resource "google_organization_iam_member" "datadog_security_sa_reader" {
   role    = "roles/reader"
   member  = "serviceAccount:${google_service_account.datadog_security_sa[0].email}"
 }
+
+resource "google_organization_iam_member" "datadog_security_sa_asset_viewer" {
+  count   = var.create_datadog_demo ? 1 : 0 
+  org_id  = "${var.organization}"
+  role    = "roles/cloudasset.viewer"
+  member  = "serviceAccount:${google_service_account.datadog_security_sa[0].email}"
+}
+
+resource "google_organization_iam_member" "datadog_security_sa_compute_viewer" {
+  count   = var.create_datadog_demo ? 1 : 0 
+  org_id  = "${var.organization}"
+  role    = "roles/compute.viewer"
+  member  = "serviceAccount:${google_service_account.datadog_security_sa[0].email}"
+}
+
+resource "google_organization_iam_member" "datadog_security_sa_monitoring_viewer" {
+  count   = var.create_datadog_demo ? 1 : 0 
+  org_id  = "${var.organization}"
+  role    = "roles/monitoring.viewer"
+  member  = "serviceAccount:${google_service_account.datadog_security_sa[0].email}"
+}
+
+resource "google_organization_iam_member" "datadog_security_sa_scc_findings_viewer" {
+  count   = var.create_datadog_demo ? 1 : 0 
+  org_id  = "${var.organization}"
+  role    = "roles/securitycenter.findingsViewer"
+  member  = "serviceAccount:${google_service_account.datadog_security_sa[0].email}"
+}
