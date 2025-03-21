@@ -2194,3 +2194,78 @@ resource "google_access_context_manager_service_perimeter" "service-perimeter" {
     }
   }
 }
+
+###########################
+## Datadog Security Demo ##
+###########################
+
+# Service Account for Datadog Security
+resource "google_service_account" "datadog_security_sa" {
+  count         = var.create_datadog_demo ? 1 : 0
+  project       = var.project
+  account_id    = "datadog-security-sa"
+  display_name  = "Datadog Security Service Account"
+}
+
+resource "google_org_policy_policy" "disable_domain_restricted_sharing" {
+  count   = var.create_datadog_demo ? 1 : 0
+  name   = "projects/${var.project}/policies/iam.allowedPolicyMemberDomains"
+  parent = "projects/${var.project}"
+
+  spec {
+    inherit_from_parent = false
+    reset               = true
+  }
+}
+
+# wait after disabling org policy
+resource "time_sleep" "wait_disable_domain_restricted_sharing" {
+  count           = var.create_datadog_demo ? 1 : 0
+  depends_on      = [google_org_policy_policy.disable_domain_restricted_sharing[0]]
+  create_duration = "60s"
+}
+
+# IAM entry for the Datadog principal to use the Datadog Security service account
+resource "google_service_account_iam_member" "datadog_security_sa_token_creator" {
+  count               = var.create_datadog_demo ? 1 : 0
+  service_account_id  = google_service_account.datadog_security_sa[0].name
+  role                = "roles/iam.serviceAccountTokenCreator"
+  member              = "serviceAccount:${var.datadog_principal}"
+
+  depends_on          = [time_sleep.wait_disable_domain_restricted_sharing[0]]
+}
+
+resource "google_organization_iam_member" "datadog_security_sa_reader" {
+  count   = var.create_datadog_demo ? 1 : 0 
+  org_id  = "${var.organization}"
+  role    = "roles/reader"
+  member  = "serviceAccount:${google_service_account.datadog_security_sa[0].email}"
+}
+
+resource "google_organization_iam_member" "datadog_security_sa_asset_viewer" {
+  count   = var.create_datadog_demo ? 1 : 0 
+  org_id  = "${var.organization}"
+  role    = "roles/cloudasset.viewer"
+  member  = "serviceAccount:${google_service_account.datadog_security_sa[0].email}"
+}
+
+resource "google_organization_iam_member" "datadog_security_sa_compute_viewer" {
+  count   = var.create_datadog_demo ? 1 : 0 
+  org_id  = "${var.organization}"
+  role    = "roles/compute.viewer"
+  member  = "serviceAccount:${google_service_account.datadog_security_sa[0].email}"
+}
+
+resource "google_organization_iam_member" "datadog_security_sa_monitoring_viewer" {
+  count   = var.create_datadog_demo ? 1 : 0 
+  org_id  = "${var.organization}"
+  role    = "roles/monitoring.viewer"
+  member  = "serviceAccount:${google_service_account.datadog_security_sa[0].email}"
+}
+
+resource "google_organization_iam_member" "datadog_security_sa_scc_findings_viewer" {
+  count   = var.create_datadog_demo ? 1 : 0 
+  org_id  = "${var.organization}"
+  role    = "roles/securitycenter.findingsViewer"
+  member  = "serviceAccount:${google_service_account.datadog_security_sa[0].email}"
+}

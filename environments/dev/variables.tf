@@ -223,3 +223,14 @@ variable "create_ss_demo" {
   type          = bool
   default       = false
 }
+
+variable "create_datadog_demo" {
+  description   = "If set to true, it will create the Datadog security demo"
+  type          = bool
+  default       = false
+}
+
+variable "datadog_principal" {
+  type        = string
+  description = "Datadog Principal to monitor GCP"
+}
