@@ -2227,6 +2227,7 @@ resource "time_sleep" "wait_disable_domain_restricted_sharing" {
 
 # IAM entry for the Datadog principal to use the Datadog Security service account
 resource "google_service_account_iam_member" "datadog_security_sa_token_creator" {
+  count               = var.create_datadog_demo ? 1 : 0
   service_account_id  = google_service_account.datadog_security_sa[0].name
   role                = "roles/iam.serviceAccountTokenCreator"
   member              = "serviceAccount:${var.datadog_principal}"
