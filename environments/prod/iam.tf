@@ -84,3 +84,21 @@ resource "google_binary_authorization_attestor_iam_member" "binauthz_verifier" {
   role     = "roles/binaryauthorization.attestorsVerifier"
   member   = "serviceAccount:${google_project_service_identity.binauthz_service_agent.email}"
 }
+
+# To use GCS CloudEvent triggers, the GCS service account requires the Pub/Sub Publisher role in the specified project.
+data "google_storage_project_service_account" "secops_gcs_agent" {
+  project = var.project
+}
+
+resource "google_project_iam_member" "gcs-pubsub-publishing" {
+  project = var.project
+  role    = "roles/pubsub.publisher"
+  member  = data.google_storage_project_service_account.secops_gcs_agent.member
+}
+
+# Grant the Eventarc Event Receiver role on the project to the Compute Engine default service account so that the Eventarc trigger can receive events from event providers.
+resource "google_project_iam_member" "event-receiving" {
+  project = var.project
+  role    = "roles/eventarc.eventReceiver"
+  member  = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
+}
