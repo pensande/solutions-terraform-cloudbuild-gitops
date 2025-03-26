@@ -1,5 +1,5 @@
 output "function_trigger_url" {
-  value = google_cloudfunctions_function.function.https_trigger_url
+  value = google_cloudfunctions2_function.function.url
 }
 
 output "sa-email" {
@@ -7,5 +7,5 @@ output "sa-email" {
 }
 
 output "function_name" {
-  value = google_cloudfunctions_function.function.name
+  value = google_cloudfunctions2_function.function.name
 }

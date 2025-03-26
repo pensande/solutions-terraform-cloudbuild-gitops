@@ -15,40 +15,52 @@ resource "google_storage_bucket_object" "cf_source_zip" {
   bucket        = "${var.project}-source-code"
 }
 
-resource "google_cloudfunctions_function" "function" {
+resource "google_cloudfunctions2_function" "function" {
   project     = var.project
-  region      = var.region
+  location    = var.region
   name        = var.function-name
   description = var.function-desc
-  runtime     = "python39"
   
-  source_archive_bucket = "${var.project}-source-code"
-  source_archive_object = google_storage_bucket_object.cf_source_zip.name
+  build_config {
+    runtime     = "python39"
+    entry_point = var.entry-point
+    source {
+      storage_source {
+        bucket = "${var.project}-source-code"
+        object = google_storage_bucket_object.cf_source_zip.name
+      }
+    }
+  }
+  
+  service_config {
+    service_account_email = google_service_account.service_account.email
+    environment_variables = var.env-vars == null ? null : var.env-vars
 
-  docker_registry       =  "ARTIFACT_REGISTRY"
+    ingress_settings      = var.triggers == null ? "ALLOW_ALL" : "ALLOW_INTERNAL_ONLY" 
 
-  trigger_http          = var.triggers == null ? true : null
-  ingress_settings      = var.triggers == null ? "ALLOW_ALL" : "ALLOW_INTERNAL_ONLY" 
+    dynamic "secret_environment_variables" {
+      for_each = var.secrets == null ? [] : var.secrets
+      content {
+          project_id  = var.project
+          key         = secret_environment_variables.value.key
+          secret      = secret_environment_variables.value.id
+          version     = "latest"
+      }
+    }
+  }
 
   dynamic "event_trigger" {
     for_each = var.triggers == null ? [] : var.triggers
     content {
-        event_type  = event_trigger.value.event_type
-        resource    = event_trigger.value.resource
-    }
-  }
-  
-  entry_point           = var.entry-point
-  service_account_email = google_service_account.service_account.email
-
-  environment_variables = var.env-vars == null ? null : var.env-vars
-
-  dynamic "secret_environment_variables" {
-    for_each = var.secrets == null ? [] : var.secrets
-    content {
-        key     = secret_environment_variables.value.key
-        secret  = secret_environment_variables.value.id
-        version = "latest"
+      event_type  = event_trigger.value.event_type
+      pubsub_topic = event_trigger.value.event_type == "google.cloud.pubsub.topic.v1.messagePublished" ? event_trigger.value.resource : null
+      dynamic "event_filters" {
+        for_each = event_trigger.value.event_type == "google.cloud.storage.object.v1.finalized" ? var.triggers : []
+        content {
+          attribute = "bucket"
+          value     = event_filters.value.resource
+        }
+      }
     }
   }
 }
