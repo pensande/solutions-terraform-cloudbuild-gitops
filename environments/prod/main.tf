@@ -93,7 +93,7 @@ module "deploy-notification-cloud-function" {
     entry-point     = "deploy_notification"
     triggers        = [
         {
-            event_type  = "google.pubsub.topic.publish"
+            event_type  = "google.cloud.pubsub.topic.v1.messagePublished"
             resource    = google_pubsub_topic.operations-pubsub.id
         }
     ]
@@ -116,7 +116,7 @@ module "approval-notification-cloud-function" {
     entry-point     = "approval_notification"
     triggers        = [
         {
-            event_type  = "google.pubsub.topic.publish"
+            event_type  = "google.cloud.pubsub.topic.v1.messagePublished"
             resource    = google_pubsub_topic.approvals-pubsub.id
         }
     ]
@@ -455,7 +455,7 @@ module "dlp-scan-storage-cloud-function" {
     }
     triggers        = [
         {
-            event_type  = "google.storage.object.finalize"
+            event_type  = "google.cloud.storage.object.v1.finalized"
             resource    = google_storage_bucket.raw_bucket.name
         }
     ]
@@ -696,7 +696,7 @@ module "scc-slack-notification-cloud-function" {
     ]
     triggers        = [
         {
-            event_type  = "google.pubsub.topic.publish"
+            event_type  = "google.cloud.pubsub.topic.v1.messagePublished"
             resource    = google_pubsub_topic.scc-slack-notification-topic.id
         }
     ]
@@ -941,7 +941,7 @@ module "scc-jira-notification-cloud-function" {
     ]
     triggers        = [
         {
-            event_type  = "google.pubsub.topic.publish"
+            event_type  = "google.cloud.pubsub.topic.v1.messagePublished"
             resource    = google_pubsub_topic.scc-jira-notification-topic.id
         }
     ]
@@ -1023,7 +1023,7 @@ module "identity-notification-cloud-function" {
     ]
     triggers        = [
         {
-            event_type  = "google.pubsub.topic.publish"
+            event_type  = "google.cloud.pubsub.topic.v1.messagePublished"
             resource    = google_pubsub_topic.identity_notification_topic.id
         }
     ]
@@ -1104,7 +1104,7 @@ module "iam_notification_cloud_function" {
     ]
     triggers        = [
         {
-            event_type  = "google.pubsub.topic.publish"
+            event_type  = "google.cloud.pubsub.topic.v1.messagePublished"
             resource    = google_pubsub_topic.iam_notification_topic.id
         }
     ]
@@ -1184,7 +1184,7 @@ module "instance_notification_cloud_function" {
     ]
     triggers        = [
         {
-            event_type  = "google.pubsub.topic.publish"
+            event_type  = "google.cloud.pubsub.topic.v1.messagePublished"
             resource    = google_pubsub_topic.instance_notification_topic.id
         }
     ]
@@ -1426,7 +1426,7 @@ module "security_ctf_challenges_cloud_function" {
     }
     triggers        = [
         {
-            event_type  = "google.storage.object.finalize"
+            event_type  = "google.cloud.storage.object.v1.finalized"
             resource    = google_storage_bucket.security_ctf_bucket.name
         }
     ]
