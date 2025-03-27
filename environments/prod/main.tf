@@ -169,12 +169,12 @@ module "deploy-approval-cloud-function" {
 }
 
 # IAM entry for all users to invoke the deploy-approval function
-resource "google_cloudfunctions2_function_iam_member" "deploy-approval-invoker" {
-  project        = var.project
-  location       = var.region
-  cloud_function = module.deploy-approval-cloud-function.function_name
+resource "google_cloud_run_service_iam_member" "deploy-approval-invoker" {
+  project   = var.project
+  location  = var.region
+  service   = module.deploy-approval-cloud-function.function_name
 
-  role   = "roles/cloudfunctions.invoker"
+  role   = "roles/run.invoker"
   member = "allUsers"
 }
 
@@ -350,12 +350,12 @@ module "admin-access-cloud-function" {
 }
 
 # IAM entry for all users to invoke the admin-access function
-resource "google_cloudfunctions2_function_iam_member" "admin-access-invoker" {
-  project        = var.project
-  location       = var.region
-  cloud_function = module.admin-access-cloud-function.function_name
+resource "google_cloud_run_service_iam_member" "admin-access-invoker" {
+  project   = var.project
+  location  = var.region
+  service   = module.admin-access-cloud-function.function_name
 
-  role   = "roles/cloudfunctions.invoker"
+  role   = "roles/run.invoker"
   member = "allUsers"
 }
 
@@ -371,12 +371,12 @@ module "provision-access-cloud-function" {
 }
 
 # IAM entry for service account of admin-access function to invoke the provision-access function
-resource "google_cloudfunctions2_function_iam_member" "provision-access-invoker" {
-  project        = var.project
-  location       = var.region
-  cloud_function = module.provision-access-cloud-function.function_name
+resource "google_cloud_run_service_iam_member" "provision-access-invoker" {
+  project   = var.project
+  location  = var.region
+  service   = module.provision-access-cloud-function.function_name
 
-  role   = "roles/cloudfunctions.invoker"
+  role   = "roles/run.invoker"
   member = "serviceAccount:${module.admin-access-cloud-function.sa-email}"
 }
 
@@ -525,12 +525,12 @@ resource "google_bigquery_connection" "connection" {
 }
 
 # IAM entry for service account of the connection created in the last step to invoke the dlp-scan-bq-remote function
-resource "google_cloudfunctions2_function_iam_member" "dlp-scan-bq-remote-invoker" {
-  project        = var.project
-  location       = var.region
-  cloud_function = module.dlp-scan-bq-remote-cloud-function.function_name
+resource "google_cloud_run_service_iam_member" "dlp-scan-bq-remote-invoker" {
+  project   = var.project
+  location  = var.region
+  service   = module.dlp-scan-bq-remote-cloud-function.function_name
 
-  role   = "roles/cloudfunctions.invoker"
+  role   = "roles/run.invoker"
   member = format("serviceAccount:%s", google_bigquery_connection.connection.cloud_resource[0].service_account_id)
 }
 
@@ -605,12 +605,12 @@ module "recaptcha-backend-cloud-function" {
 }
 
 # IAM entry for all users to invoke the recaptcha-backend function
-resource "google_cloudfunctions2_function_iam_member" "recaptcha-backend-invoker" {
-  project        = var.project
-  location       = var.region
-  cloud_function = module.recaptcha-backend-cloud-function.function_name
+resource "google_cloud_run_service_iam_member" "recaptcha-backend-invoker" {
+  project   = var.project
+  location  = var.region
+  service   = module.recaptcha-backend-cloud-function.function_name
 
-  role   = "roles/cloudfunctions.invoker"
+  role   = "roles/run.invoker"
   member = "allUsers"
 }
 
@@ -736,12 +736,12 @@ module "scc-remediation-cloud-function" {
 }
 
 # IAM entry for all users to invoke the scc-remediation function
-resource "google_cloudfunctions2_function_iam_member" "scc-remediation-invoker" {
-  project        = var.project
-  location       = var.region
-  cloud_function = module.scc-remediation-cloud-function.function_name
+resource "google_cloud_run_service_iam_member" "scc-remediation-invoker" {
+  project   = var.project
+  location  = var.region
+  service   = module.scc-remediation-cloud-function.function_name
 
-  role   = "roles/cloudfunctions.invoker"
+  role   = "roles/run.invoker"
   member = "allUsers"
 }
 
@@ -773,12 +773,12 @@ module "mute-finding-cloud-function" {
 }
 
 # IAM entry for service account of scc-remediation function to invoke the mute-finding function
-resource "google_cloudfunctions2_function_iam_member" "mute-finding-invoker" {
-  project        = var.project
-  location       = var.region
-  cloud_function = module.mute-finding-cloud-function.function_name
+resource "google_cloud_run_service_iam_member" "mute-finding-invoker" {
+  project   = var.project
+  location  = var.region
+  service   = module.mute-finding-cloud-function.function_name
 
-  role   = "roles/cloudfunctions.invoker"
+  role   = "roles/run.invoker"
   member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
 }
 
@@ -798,12 +798,12 @@ module "deactivate-finding-cloud-function" {
 }
 
 # IAM entry for service account of scc-remediation function to invoke the deactivate-finding function
-resource "google_cloudfunctions2_function_iam_member" "deactivate-finding-invoker" {
-  project        = var.project
-  location       = var.region
-  cloud_function = module.deactivate-finding-cloud-function.function_name
+resource "google_cloud_run_service_iam_member" "deactivate-finding-invoker" {
+  project   = var.project
+  location  = var.region
+  service   = module.deactivate-finding-cloud-function.function_name
 
-  role   = "roles/cloudfunctions.invoker"
+  role   = "roles/run.invoker"
   member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
 }
 
@@ -832,12 +832,12 @@ module "remediate-firewall-cloud-function" {
 }
 
 # IAM entry for service account of scc-remediation function to invoke the remediate-firewall function
-resource "google_cloudfunctions2_function_iam_member" "remediate-firewall-invoker" {
-  project        = var.project
-  location       = var.region
-  cloud_function = module.remediate-firewall-cloud-function.function_name
+resource "google_cloud_run_service_iam_member" "remediate-firewall-invoker" {
+  project   = var.project
+  location  = var.region
+  service   = module.remediate-firewall-cloud-function.function_name
 
-  role   = "roles/cloudfunctions.invoker"
+  role   = "roles/run.invoker"
   member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
 }
 
@@ -857,12 +857,12 @@ module "remediate-instance-cloud-function" {
 }
 
 # IAM entry for service account of scc-remediation function to invoke the remediate-instance function
-resource "google_cloudfunctions2_function_iam_member" "remediate-instance-invoker" {
-  project        = var.project
-  location       = var.region
-  cloud_function = module.remediate-instance-cloud-function.function_name
+resource "google_cloud_run_service_iam_member" "remediate-instance-invoker" {
+  project   = var.project
+  location  = var.region
+  service   = module.remediate-instance-cloud-function.function_name
 
-  role   = "roles/cloudfunctions.invoker"
+  role   = "roles/run.invoker"
   member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
 }
 
@@ -882,12 +882,12 @@ module "remediate-bucket-cloud-function" {
 }
 
 # IAM entry for service account of scc-remediation function to invoke the remediate-bucket function
-resource "google_cloudfunctions2_function_iam_member" "remediate-bucket-invoker" {
-  project        = var.project
-  location       = var.region
-  cloud_function = module.remediate-bucket-cloud-function.function_name
+resource "google_cloud_run_service_iam_member" "remediate-bucket-invoker" {
+  project   = var.project
+  location  = var.region
+  service   = module.remediate-bucket-cloud-function.function_name
 
-  role   = "roles/cloudfunctions.invoker"
+  role   = "roles/run.invoker"
   member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
 }
 
@@ -1247,12 +1247,12 @@ module "security_ctf_cloud_function" {
 }
 
 # IAM entry for all users to invoke the security-ctf function
-resource "google_cloudfunctions2_function_iam_member" "security_ctf_invoker" {
-  project        = var.project
-  location       = var.region
-  cloud_function = module.security_ctf_cloud_function.function_name
+resource "google_cloud_run_service_iam_member" "security_ctf_invoker" {
+  project   = var.project
+  location  = var.region
+  service   = module.security_ctf_cloud_function.function_name
 
-  role   = "roles/cloudfunctions.invoker"
+  role   = "roles/run.invoker"
   member = "allUsers"
 }
 
@@ -1306,12 +1306,12 @@ module "secuity_ctf_admin_cloud_function" {
 }
 
 # IAM entry for service account of security-ctf function to invoke the security-ctf-admin function
-resource "google_cloudfunctions2_function_iam_member" "security_ctf_admin_invoker" {
-  project        = var.project
-  location       = var.region
-  cloud_function = module.secuity_ctf_admin_cloud_function.function_name
+resource "google_cloud_run_service_iam_member" "security_ctf_admin_invoker" {
+  project   = var.project
+  location  = var.region
+  service   = module.secuity_ctf_admin_cloud_function.function_name
 
-  role   = "roles/cloudfunctions.invoker"
+  role   = "roles/run.invoker"
   member = "serviceAccount:${module.security_ctf_cloud_function.sa-email}"
 }
 
@@ -1343,12 +1343,12 @@ module "secuity_ctf_game_cloud_function" {
 }
 
 # IAM entry for service account of security-ctf function to invoke the security-ctf-game function
-resource "google_cloudfunctions2_function_iam_member" "security_ctf_game_invoker" {
-  project        = var.project
-  location       = var.region
-  cloud_function = module.secuity_ctf_game_cloud_function.function_name
+resource "google_cloud_run_service_iam_member" "security_ctf_game_invoker" {
+  project   = var.project
+  location  = var.region
+  service   = module.secuity_ctf_game_cloud_function.function_name
 
-  role   = "roles/cloudfunctions.invoker"
+  role   = "roles/run.invoker"
   member = "serviceAccount:${module.security_ctf_cloud_function.sa-email}"
 }
 
@@ -1380,12 +1380,12 @@ module "secuity_ctf_player_cloud_function" {
 }
 
 # IAM entry for service account of security-ctf function to invoke the security-ctf-game function
-resource "google_cloudfunctions2_function_iam_member" "security_ctf_player_invoker" {
-  project        = var.project
-  location       = var.region
-  cloud_function = module.secuity_ctf_player_cloud_function.function_name
+resource "google_cloud_run_service_iam_member" "security_ctf_player_invoker" {
+  project   = var.project
+  location  = var.region
+  service   = module.secuity_ctf_player_cloud_function.function_name
 
-  role   = "roles/cloudfunctions.invoker"
+  role   = "roles/run.invoker"
   member = "serviceAccount:${module.security_ctf_cloud_function.sa-email}"
 }
 
