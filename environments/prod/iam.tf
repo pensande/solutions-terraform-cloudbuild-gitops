@@ -90,15 +90,22 @@ data "google_storage_project_service_account" "secops_gcs_agent" {
   project = var.project
 }
 
-resource "google_project_iam_member" "gcs-pubsub-publishing" {
+resource "google_project_iam_member" "gcs_pubsub_publisher" {
   project = var.project
   role    = "roles/pubsub.publisher"
   member  = data.google_storage_project_service_account.secops_gcs_agent.member
 }
 
 # Grant the Eventarc Event Receiver role on the project to the Compute Engine default service account so that the Eventarc trigger can receive events from event providers.
-resource "google_project_iam_member" "event-receiving" {
+resource "google_project_iam_member" "eventarc_event_receiver" {
   project = var.project
   role    = "roles/eventarc.eventReceiver"
   member  = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
+}
+
+# To support authenticated Pub/Sub push requests, grant the Service Account Token Creator role to the Pub/Sub service agent.
+resource "google_project_iam_member" "pubsub_token_creator" {
+  project = var.project
+  role    = "roles/iam.serviceAccountTokenCreator"
+  member  = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
