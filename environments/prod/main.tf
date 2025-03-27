@@ -174,7 +174,7 @@ resource "google_cloudfunctions2_function_iam_member" "deploy-approval-invoker" 
   location       = var.region
   cloud_function = module.deploy-approval-cloud-function.function_name
 
-  role   = "roles/run.invoker"
+  role   = "roles/cloudfunctions.invoker"
   member = "allUsers"
 }
 
@@ -355,7 +355,7 @@ resource "google_cloudfunctions2_function_iam_member" "admin-access-invoker" {
   location       = var.region
   cloud_function = module.admin-access-cloud-function.function_name
 
-  role   = "roles/run.invoker"
+  role   = "roles/cloudfunctions.invoker"
   member = "allUsers"
 }
 
@@ -376,7 +376,7 @@ resource "google_cloudfunctions2_function_iam_member" "provision-access-invoker"
   location       = var.region
   cloud_function = module.provision-access-cloud-function.function_name
 
-  role   = "roles/run.invoker"
+  role   = "roles/cloudfunctions.invoker"
   member = "serviceAccount:${module.admin-access-cloud-function.sa-email}"
 }
 
@@ -530,7 +530,7 @@ resource "google_cloudfunctions2_function_iam_member" "dlp-scan-bq-remote-invoke
   location       = var.region
   cloud_function = module.dlp-scan-bq-remote-cloud-function.function_name
 
-  role   = "roles/run.invoker"
+  role   = "roles/cloudfunctions.invoker"
   member = format("serviceAccount:%s", google_bigquery_connection.connection.cloud_resource[0].service_account_id)
 }
 
@@ -610,7 +610,7 @@ resource "google_cloudfunctions2_function_iam_member" "recaptcha-backend-invoker
   location       = var.region
   cloud_function = module.recaptcha-backend-cloud-function.function_name
 
-  role   = "roles/run.invoker"
+  role   = "roles/cloudfunctions.invoker"
   member = "allUsers"
 }
 
@@ -741,7 +741,7 @@ resource "google_cloudfunctions2_function_iam_member" "scc-remediation-invoker" 
   location       = var.region
   cloud_function = module.scc-remediation-cloud-function.function_name
 
-  role   = "roles/run.invoker"
+  role   = "roles/cloudfunctions.invoker"
   member = "allUsers"
 }
 
@@ -778,7 +778,7 @@ resource "google_cloudfunctions2_function_iam_member" "mute-finding-invoker" {
   location       = var.region
   cloud_function = module.mute-finding-cloud-function.function_name
 
-  role   = "roles/run.invoker"
+  role   = "roles/cloudfunctions.invoker"
   member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
 }
 
@@ -803,7 +803,7 @@ resource "google_cloudfunctions2_function_iam_member" "deactivate-finding-invoke
   location       = var.region
   cloud_function = module.deactivate-finding-cloud-function.function_name
 
-  role   = "roles/run.invoker"
+  role   = "roles/cloudfunctions.invoker"
   member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
 }
 
@@ -837,7 +837,7 @@ resource "google_cloudfunctions2_function_iam_member" "remediate-firewall-invoke
   location       = var.region
   cloud_function = module.remediate-firewall-cloud-function.function_name
 
-  role   = "roles/run.invoker"
+  role   = "roles/cloudfunctions.invoker"
   member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
 }
 
@@ -862,7 +862,7 @@ resource "google_cloudfunctions2_function_iam_member" "remediate-instance-invoke
   location       = var.region
   cloud_function = module.remediate-instance-cloud-function.function_name
 
-  role   = "roles/run.invoker"
+  role   = "roles/cloudfunctions.invoker"
   member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
 }
 
@@ -887,7 +887,7 @@ resource "google_cloudfunctions2_function_iam_member" "remediate-bucket-invoker"
   location       = var.region
   cloud_function = module.remediate-bucket-cloud-function.function_name
 
-  role   = "roles/run.invoker"
+  role   = "roles/cloudfunctions.invoker"
   member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
 }
 
@@ -1252,7 +1252,7 @@ resource "google_cloudfunctions2_function_iam_member" "security_ctf_invoker" {
   location       = var.region
   cloud_function = module.security_ctf_cloud_function.function_name
 
-  role   = "roles/run.invoker"
+  role   = "roles/cloudfunctions.invoker"
   member = "allUsers"
 }
 
@@ -1311,7 +1311,7 @@ resource "google_cloudfunctions2_function_iam_member" "security_ctf_admin_invoke
   location       = var.region
   cloud_function = module.secuity_ctf_admin_cloud_function.function_name
 
-  role   = "roles/run.invoker"
+  role   = "roles/cloudfunctions.invoker"
   member = "serviceAccount:${module.security_ctf_cloud_function.sa-email}"
 }
 
@@ -1348,7 +1348,7 @@ resource "google_cloudfunctions2_function_iam_member" "security_ctf_game_invoker
   location       = var.region
   cloud_function = module.secuity_ctf_game_cloud_function.function_name
 
-  role   = "roles/run.invoker"
+  role   = "roles/cloudfunctions.invoker"
   member = "serviceAccount:${module.security_ctf_cloud_function.sa-email}"
 }
 
@@ -1385,7 +1385,7 @@ resource "google_cloudfunctions2_function_iam_member" "security_ctf_player_invok
   location       = var.region
   cloud_function = module.secuity_ctf_player_cloud_function.function_name
 
-  role   = "roles/run.invoker"
+  role   = "roles/cloudfunctions.invoker"
   member = "serviceAccount:${module.security_ctf_cloud_function.sa-email}"
 }
 
