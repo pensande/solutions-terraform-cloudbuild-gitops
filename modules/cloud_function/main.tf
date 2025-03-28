@@ -22,7 +22,7 @@ resource "google_cloudfunctions2_function" "function" {
   description = var.function-desc
   
   build_config {
-    runtime     = "python39"
+    runtime     = "python312"
     entry_point = var.entry-point
     source {
       storage_source {
