@@ -102,17 +102,3 @@ resource "google_project_iam_member" "eventarc_event_receiver" {
   role    = "roles/eventarc.eventReceiver"
   member  = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
 }
-
-# Grant the Eventarc Event Receiver role on the project to the Compute Engine default service account so that the Eventarc trigger can receive events from event providers.
-resource "google_project_iam_member" "eventarc_run_invoker" {
-  project = var.project
-  role    = "roles/run.invoker"
-  member  = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
-}
-
-# To support authenticated Pub/Sub push requests, grant the Service Account Token Creator role to the Pub/Sub service agent.
-resource "google_project_iam_member" "pubsub_token_creator" {
-  project = var.project
-  role    = "roles/iam.serviceAccountTokenCreator"
-  member  = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
-}

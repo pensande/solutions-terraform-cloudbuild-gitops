@@ -106,6 +106,7 @@ module "deploy-notification-cloud-function" {
             id  = google_secret_manager_secret.slack-secure-cicd-bot-token.secret_id
         }
     ]
+    invoker         = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
 }
 
 module "approval-notification-cloud-function" {
@@ -129,6 +130,7 @@ module "approval-notification-cloud-function" {
             id  = google_secret_manager_secret.slack-secure-cicd-bot-token.secret_id
         }
     ]
+    invoker         = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
 }
 
 resource "google_secret_manager_secret" "slack-secure-cicd-bot-token" {
@@ -166,16 +168,7 @@ module "deploy-approval-cloud-function" {
             id  = google_secret_manager_secret.slack-secure-cicd-signing-secret.secret_id
         }
     ]
-}
-
-# IAM entry for all users to invoke the deploy-approval function
-resource "google_cloud_run_service_iam_member" "deploy-approval-invoker" {
-  project   = var.project
-  location  = var.region
-  service   = module.deploy-approval-cloud-function.function_name
-
-  role   = "roles/run.invoker"
-  member = "allUsers"
+    invoker         = "allUsers"
 }
 
 # IAM entry for service account of deploy-approval function to approve or reject rollouts
@@ -347,16 +340,7 @@ module "admin-access-cloud-function" {
             id  = google_secret_manager_secret.slack-access-admin-signing-secret.secret_id
         }
     ]
-}
-
-# IAM entry for all users to invoke the admin-access function
-resource "google_cloud_run_service_iam_member" "admin-access-invoker" {
-  project   = var.project
-  location  = var.region
-  service   = module.admin-access-cloud-function.function_name
-
-  role   = "roles/run.invoker"
-  member = "allUsers"
+    invoker         = "allUsers"
 }
 
 module "provision-access-cloud-function" {
@@ -368,16 +352,7 @@ module "provision-access-cloud-function" {
     env-vars        = {
         CLOUD_IDENTITY_DOMAIN = var.cloud_identity_domain
     }
-}
-
-# IAM entry for service account of admin-access function to invoke the provision-access function
-resource "google_cloud_run_service_iam_member" "provision-access-invoker" {
-  project   = var.project
-  location  = var.region
-  service   = module.provision-access-cloud-function.function_name
-
-  role   = "roles/run.invoker"
-  member = "serviceAccount:${module.admin-access-cloud-function.sa-email}"
+    invoker         = "serviceAccount:${module.admin-access-cloud-function.sa-email}"
 }
 
 # IAM entry for service account of provision-access function to manage IAM policies
@@ -459,6 +434,7 @@ module "dlp-scan-storage-cloud-function" {
             resource    = google_storage_bucket.raw_bucket.name
         }
     ]
+    invoker         = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
 }
 
 # Create a custom IAM role for the dlp-scan-storage function over storage buckets
@@ -513,6 +489,7 @@ module "dlp-scan-bq-remote-cloud-function" {
       WRAPPED_KEY   = var.dlp_wrapped_key
       KMS_KEY       = google_kms_crypto_key.dlp_tokenize_key.id
     }
+  invoker           = "serviceAccount:${google_bigquery_connection.connection.cloud_resource[0].service_account_id}"
 }
 
 # This creates a cloud resource connection.
@@ -522,16 +499,6 @@ resource "google_bigquery_connection" "connection" {
   project         = var.project
   location        = var.region
   cloud_resource {}
-}
-
-# IAM entry for service account of the connection created in the last step to invoke the dlp-scan-bq-remote function
-resource "google_cloud_run_service_iam_member" "dlp-scan-bq-remote-invoker" {
-  project   = var.project
-  location  = var.region
-  service   = module.dlp-scan-bq-remote-cloud-function.function_name
-
-  role   = "roles/run.invoker"
-  member = format("serviceAccount:%s", google_bigquery_connection.connection.cloud_resource[0].service_account_id)
 }
 
 # IAM entry for service account of dlp-scan-bq-remote function to use the DLP service
@@ -602,16 +569,7 @@ module "recaptcha-backend-cloud-function" {
             id  = google_secret_manager_secret.recaptcha-website-password.secret_id
         }
     ]
-}
-
-# IAM entry for all users to invoke the recaptcha-backend function
-resource "google_cloud_run_service_iam_member" "recaptcha-backend-invoker" {
-  project   = var.project
-  location  = var.region
-  service   = module.recaptcha-backend-cloud-function.function_name
-
-  role   = "roles/run.invoker"
-  member = "allUsers"
+    invoker         = "allUsers"
 }
 
 # IAM entry for service account of recaptcha-backend function to use the reCAPTCHA service
@@ -700,6 +658,7 @@ module "scc-slack-notification-cloud-function" {
             resource    = google_pubsub_topic.scc-slack-notification-topic.id
         }
     ]
+    invoker         = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
 }
 
 resource "google_secret_manager_secret" "slack-scc-bot-token" {
@@ -733,16 +692,7 @@ module "scc-remediation-cloud-function" {
             id  = google_secret_manager_secret.slack-scc-signing-secret.secret_id
         }
     ]
-}
-
-# IAM entry for all users to invoke the scc-remediation function
-resource "google_cloud_run_service_iam_member" "scc-remediation-invoker" {
-  project   = var.project
-  location  = var.region
-  service   = module.scc-remediation-cloud-function.function_name
-
-  role   = "roles/run.invoker"
-  member = "allUsers"
+    invoker         = "allUsers"
 }
 
 resource "google_secret_manager_secret" "slack-scc-signing-secret" {
@@ -770,16 +720,7 @@ module "mute-finding-cloud-function" {
     function-name   = "mute-finding"
     function-desc   = "mutes scc findings"
     entry-point     = "mute_finding"
-}
-
-# IAM entry for service account of scc-remediation function to invoke the mute-finding function
-resource "google_cloud_run_service_iam_member" "mute-finding-invoker" {
-  project   = var.project
-  location  = var.region
-  service   = module.mute-finding-cloud-function.function_name
-
-  role   = "roles/run.invoker"
-  member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
+    invoker         = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
 }
 
 # IAM entry for service account of mute-finding function to mute SCC findings
@@ -795,16 +736,7 @@ module "deactivate-finding-cloud-function" {
     function-name   = "deactivate-finding"
     function-desc   = "deactivates scc findings"
     entry-point     = "deactivate_finding"
-}
-
-# IAM entry for service account of scc-remediation function to invoke the deactivate-finding function
-resource "google_cloud_run_service_iam_member" "deactivate-finding-invoker" {
-  project   = var.project
-  location  = var.region
-  service   = module.deactivate-finding-cloud-function.function_name
-
-  role   = "roles/run.invoker"
-  member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
+    invoker         = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
 }
 
 # IAM entry for service account of deactivate-finding function to deactivate SCC findings
@@ -829,16 +761,7 @@ module "remediate-firewall-cloud-function" {
     function-name   = "remediate-firewall"
     function-desc   = "remediates scc findings related to misconfigured firewalls"
     entry-point     = "remediate_firewall"
-}
-
-# IAM entry for service account of scc-remediation function to invoke the remediate-firewall function
-resource "google_cloud_run_service_iam_member" "remediate-firewall-invoker" {
-  project   = var.project
-  location  = var.region
-  service   = module.remediate-firewall-cloud-function.function_name
-
-  role   = "roles/run.invoker"
-  member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
+    invoker         = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
 }
 
 # IAM entry for service account of remediate-firewall function
@@ -854,16 +777,7 @@ module "remediate-instance-cloud-function" {
     function-name   = "remediate-instance"
     function-desc   = "remediates scc findings related to misconfigured instances"
     entry-point     = "remediate_instance"
-}
-
-# IAM entry for service account of scc-remediation function to invoke the remediate-instance function
-resource "google_cloud_run_service_iam_member" "remediate-instance-invoker" {
-  project   = var.project
-  location  = var.region
-  service   = module.remediate-instance-cloud-function.function_name
-
-  role   = "roles/run.invoker"
-  member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
+    invoker         = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
 }
 
 # IAM entry for service account of remediate-instance function
@@ -879,16 +793,7 @@ module "remediate-bucket-cloud-function" {
     function-name   = "remediate-bucket"
     function-desc   = "remediates scc findings related to misconfigured buckets"
     entry-point     = "remediate_bucket"
-}
-
-# IAM entry for service account of scc-remediation function to invoke the remediate-bucket function
-resource "google_cloud_run_service_iam_member" "remediate-bucket-invoker" {
-  project   = var.project
-  location  = var.region
-  service   = module.remediate-bucket-cloud-function.function_name
-
-  role   = "roles/run.invoker"
-  member = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
+    invoker         = "serviceAccount:${module.scc-remediation-cloud-function.sa-email}"
 }
 
 # IAM entry for service account of remediate-bucket function
@@ -945,6 +850,7 @@ module "scc-jira-notification-cloud-function" {
             resource    = google_pubsub_topic.scc-jira-notification-topic.id
         }
     ]
+    invoker         = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
 }
 
 resource "google_secret_manager_secret" "atlassian-api-token" {
@@ -1027,6 +933,7 @@ module "identity-notification-cloud-function" {
             resource    = google_pubsub_topic.identity_notification_topic.id
         }
     ]
+    invoker         = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
 }
 
 resource "google_secret_manager_secret" "slack_identity_bot_token" {
@@ -1108,6 +1015,7 @@ module "iam_notification_cloud_function" {
             resource    = google_pubsub_topic.iam_notification_topic.id
         }
     ]
+    invoker         = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
 }
 
 # IAM entry for service account of iam-notification function to use the slack bot token
@@ -1188,6 +1096,7 @@ module "instance_notification_cloud_function" {
             resource    = google_pubsub_topic.instance_notification_topic.id
         }
     ]
+    invoker         = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
 }
 
 # IAM entry for service account of instance-notification function to use the slack bot token
@@ -1244,16 +1153,7 @@ module "security_ctf_cloud_function" {
             id  = google_secret_manager_secret.slack_security_ctf_signing_secret.secret_id
         }
     ]
-}
-
-# IAM entry for all users to invoke the security-ctf function
-resource "google_cloud_run_service_iam_member" "security_ctf_invoker" {
-  project   = var.project
-  location  = var.region
-  service   = module.security_ctf_cloud_function.function_name
-
-  role   = "roles/run.invoker"
-  member = "allUsers"
+    invoker         = "allUsers"
 }
 
 resource "google_secret_manager_secret" "slack_security_ctf_bot_token" {
@@ -1303,16 +1203,7 @@ module "secuity_ctf_admin_cloud_function" {
         ORG_ID           = var.organization
         STORAGE_ROLE     = google_project_iam_custom_role.ctf_storage_reader.id
     }
-}
-
-# IAM entry for service account of security-ctf function to invoke the security-ctf-admin function
-resource "google_cloud_run_service_iam_member" "security_ctf_admin_invoker" {
-  project   = var.project
-  location  = var.region
-  service   = module.secuity_ctf_admin_cloud_function.function_name
-
-  role   = "roles/run.invoker"
-  member = "serviceAccount:${module.security_ctf_cloud_function.sa-email}"
+    invoker         = "serviceAccount:${module.security_ctf_cloud_function.sa-email}"
 }
 
 # IAM entry for service account of security-ctf-admin function to manage IAM policies
@@ -1340,16 +1231,7 @@ module "secuity_ctf_game_cloud_function" {
         PROJECT_NAME        = var.project
         GAMES_COLLECTION    = var.games_collection
     }
-}
-
-# IAM entry for service account of security-ctf function to invoke the security-ctf-game function
-resource "google_cloud_run_service_iam_member" "security_ctf_game_invoker" {
-  project   = var.project
-  location  = var.region
-  service   = module.secuity_ctf_game_cloud_function.function_name
-
-  role   = "roles/run.invoker"
-  member = "serviceAccount:${module.security_ctf_cloud_function.sa-email}"
+    invoker         = "serviceAccount:${module.security_ctf_cloud_function.sa-email}"
 }
 
 # IAM entry for service account of security-ctf-game function to use the firestore database
@@ -1377,16 +1259,7 @@ module "secuity_ctf_player_cloud_function" {
             id  = google_secret_manager_secret.slack_security_ctf_bot_token.secret_id
         }
     ]
-}
-
-# IAM entry for service account of security-ctf function to invoke the security-ctf-game function
-resource "google_cloud_run_service_iam_member" "security_ctf_player_invoker" {
-  project   = var.project
-  location  = var.region
-  service   = module.secuity_ctf_player_cloud_function.function_name
-
-  role   = "roles/run.invoker"
-  member = "serviceAccount:${module.security_ctf_cloud_function.sa-email}"
+    invoker         = "serviceAccount:${module.security_ctf_cloud_function.sa-email}"
 }
 
 # IAM entry for service account of security-ctf-player function to use the slack bot token
@@ -1430,6 +1303,7 @@ module "security_ctf_challenges_cloud_function" {
             resource    = google_storage_bucket.security_ctf_bucket.name
         }
     ]
+    invoker         = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
 }
 
 # Create a custom IAM role for the security-ctf-challenges function over storage buckets
