@@ -69,3 +69,14 @@ resource "google_service_account" "service_account" {
   account_id   = "sa-${var.function-name}"
   display_name = "sa-${var.function-name}"
 }
+
+# IAM entry to invoke the cloud function
+resource "google_cloud_run_service_iam_member" "invoker_role" {
+  count     = var.invoker == null ? 0 : 1
+  project   = var.project
+  location  = var.region
+  service   = google_cloudfunctions2_function.function.name
+
+  role      = "roles/run.invoker"
+  member    = var.invoker
+}
