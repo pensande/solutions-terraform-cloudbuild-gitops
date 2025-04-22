@@ -2304,3 +2304,17 @@ resource "google_iam_workforce_pool_provider" "okta_wf_provider" {
   disabled            = false
   attribute_condition = "true"
 }
+
+resource "google_project_iam_member" "compute_admin" {
+  count   = var.create_wfif_demo ? 1 : 0
+  project = var.host_project
+  role    = "roles/compute.admin"
+  member  = "principalSet://iam.googleapis.com/locations/global/workforcePools/agarsand-wf-pool/attribute.department/Compliance"
+}
+
+resource "google_project_iam_member" "storage_admin" {
+  count   = var.create_wfif_demo ? 1 : 0
+  project = var.host_project
+  role    = "roles/storage.admin"
+  member  = "principalSet://iam.googleapis.com/locations/global/workforcePools/agarsand-wf-pool/attribute.department/Security"
+}
