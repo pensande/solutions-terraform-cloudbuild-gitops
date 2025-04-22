@@ -234,3 +234,9 @@ variable "datadog_principal" {
   type        = string
   description = "Datadog Principal to monitor GCP"
 }
+
+variable "create_wfif_demo" {
+  description   = "If set to true, it will create the Workforce Identity Federation demo"
+  type          = bool
+  default       = false
+}
