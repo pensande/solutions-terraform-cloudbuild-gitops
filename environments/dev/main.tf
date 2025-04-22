@@ -2269,3 +2269,52 @@ resource "google_organization_iam_member" "datadog_security_sa_scc_findings_view
   role    = "roles/securitycenter.findingsViewer"
   member  = "serviceAccount:${google_service_account.datadog_security_sa[0].email}"
 }
+
+########################################
+## Workforce Identity Federation Demo ##
+########################################
+
+resource "google_iam_workforce_pool" "agarsand_wf_pool" {
+  count             = var.create_wfif_demo ? 1 : 0
+  workforce_pool_id = "agarsand-wf-pool"
+  parent            = "organizations/${var.organization}"
+  location          = "global"
+}
+
+resource "google_iam_workforce_pool_provider" "okta_wf_provider" {
+  count               = var.create_wfif_demo ? 1 : 0
+  workforce_pool_id   = google_iam_workforce_pool.agarsand_wf_pool[0].workforce_pool_id
+  location            = google_iam_workforce_pool.agarsand_wf_pool[0].location
+  provider_id         = "okta-wf-provider"
+  attribute_mapping   = {
+    "google.subject"        = "assertion.email"
+    "google.display_name"   = "assertion.name"
+    "attribute.department"  = "assertion.department"
+  }
+  oidc {
+    issuer_uri        = "https://dev-01083494.okta.com"
+    client_id         = "0oa8rtph6eaNTbpaZ5d7"
+    web_sso_config {
+      response_type             = "ID_TOKEN"
+      assertion_claims_behavior = "ONLY_ID_TOKEN_CLAIMS"
+    }
+  }
+  display_name        = "Okta"
+  description         = "User logins from okta"
+  disabled            = false
+  attribute_condition = "true"
+}
+
+resource "google_project_iam_member" "compute_admin" {
+  count   = var.create_wfif_demo ? 1 : 0
+  project = var.host_project
+  role    = "roles/compute.admin"
+  member  = "principalSet://iam.googleapis.com/locations/global/workforcePools/agarsand-wf-pool/attribute.department/Compliance"
+}
+
+resource "google_project_iam_member" "storage_admin" {
+  count   = var.create_wfif_demo ? 1 : 0
+  project = var.host_project
+  role    = "roles/storage.admin"
+  member  = "principalSet://iam.googleapis.com/locations/global/workforcePools/agarsand-wf-pool/attribute.department/Security"
+}
