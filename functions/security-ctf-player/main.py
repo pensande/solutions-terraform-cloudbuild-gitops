@@ -259,7 +259,7 @@ def send_slack_challenge(response_url, game_name, challenge_id, hint_taken, play
         
         if time_limit > 0:
             player_doc  = player_ref.get()
-            reply_by    = (datetime.fromtimestamp(player_doc.get(f"{challenge_id}.start_time").timestamp_pb().seconds) + timedelta(minutes = time_limit)).astimezone(timezone('Europe/Berlin')).strftime('%H:%M:%S')    
+            reply_by    = (datetime.fromtimestamp(player_doc.get(f"{challenge_id}.start_time").timestamp_pb().seconds) + timedelta(minutes = time_limit)).astimezone(timezone('Asia/Kolkata')).strftime('%H:%M:%S')    
             if hint_taken:
                 time_message    = f"Respond within {time_limit} mins by {reply_by} IST! {challenge_doc.get('hint_score')} points if you solve in 3 mins! :hourglass_flowing_sand:"
             else:
