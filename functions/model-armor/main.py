@@ -55,9 +55,9 @@ def model_armor(event, context):
                             document_id = column 
                         elif index == 1:
                             data[header_row[index]] = column
-                            sanitized_prompt = sanitize_prompt(column)
-                            data[header_row[index+1]] = json.dumps(sanitized_prompt)
-                            data[header_row[index+2]] = sanitized_prompt['sanitization_result']['filter_match_state']
+                            sanitization_result = sanitize_prompt(column)
+                            data[header_row[index+1]] = "will do"
+                            data[header_row[index+2]] = sanitization_result.filter_match_state
                         index += 1
                     print(data)
                     db.collection("model-armor-prompts").document(document_id).set(data)
@@ -82,4 +82,4 @@ def sanitize_prompt(user_prompt):
     response = client.sanitize_user_prompt(request=request)
 
     # Return the sanitization result.
-    return response
+    return response.sanitization_result
