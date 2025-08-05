@@ -2342,7 +2342,7 @@ module "model_armor_cloud_function" {
     triggers        = [
       {
         event_type  = "google.cloud.storage.object.v1.finalized"
-        resource    = google_storage_bucket.security_ctf_bucket.name
+        resource    = google_storage_bucket.model_armor_prompts_bucket.name
       }
     ]
     invoker         = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
