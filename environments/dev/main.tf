@@ -2318,3 +2318,54 @@ resource "google_project_iam_member" "storage_admin" {
   role    = "roles/storage.admin"
   member  = "principalSet://iam.googleapis.com/locations/global/workforcePools/agarsand-wf-pool/attribute.department/Security"
 }
+
+#######################################
+## Model Armor Runtime Security Demo ##
+#######################################
+
+# GCS bucket to store csv files with input prompt test cases
+resource "google_storage_bucket" "model_armor_prompts_bucket" {
+  name                          = "model-armor-prompts-bucket"
+  location                      = var.region
+  uniform_bucket_level_access   = true
+}
+
+module "model_armor_cloud_function" {
+    source          = "../../modules/cloud_function"
+    project         = var.project
+    function-name   = "model-armor"
+    function-desc   = "reads prompt test cases from csv file and runs them past model armor"
+    entry-point     = "model_armor"
+    env-vars        = {
+        PROJECT_NAME    = var.project
+    }
+    triggers        = [
+      {
+        event_type  = "google.cloud.storage.object.v1.finalized"
+        resource    = google_storage_bucket.security_ctf_bucket.name
+      }
+    ]
+    invoker         = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
+}
+
+# Create a custom IAM role for the model-armor function over storage buckets
+resource "google_project_iam_custom_role" "model_armor_custom_role" {
+  role_id     = "model_armor_custom_role"
+  title       = "Custom Role for the model-armor function to read from storage buckets"
+  description = "This role is used by the model-armor function's SA in ${var.project}"
+  permissions = ["storage.buckets.get","storage.objects.get"]
+}
+
+# IAM entry for service account of model-armor function over prompts bucket
+resource "google_storage_bucket_iam_member" "model_armor_prompts_bucket_read" {
+  bucket    = google_storage_bucket.model_armor_prompts_bucket.name
+  role      = google_project_iam_custom_role.model_armor_custom_role.name
+  member    = "serviceAccount:${module.model_armor_cloud_function.sa-email}"
+}
+
+# IAM entry for service account of model_armor function to use the Model Armor API
+resource "google_project_iam_member" "model_armor_user" {
+  project   = var.project
+  role      = "roles/modelarmor.user"
+  member    = "serviceAccount:${module.model_armor_cloud_function.sa-email}"
+}
