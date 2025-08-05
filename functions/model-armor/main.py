@@ -54,7 +54,9 @@ def model_armor(event, context):
                             document_id = column 
                         elif index == 1:
                             data[header_row[index]] = column
-                            data[header_row[index+1]] = sanitize_prompt(column)
+                            sanitized_prompt = sanitize_prompt(column)
+                            data[header_row[index+1]] = json.dumps(sanitized_prompt)
+                            data[header_row[index+2]] = sanitized_prompt['sanitization_result']['filter_match_state']
                         index += 1
                     print(data)
                     db.collection("model-armor-prompts").document(document_id).set(data)
