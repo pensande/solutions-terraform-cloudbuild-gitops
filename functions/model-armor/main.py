@@ -79,19 +79,21 @@ def sanitize_prompt(user_prompt):
     # Sanitize the user prompt.
     response = client.sanitize_user_prompt(request=request)
 
-    matched_filters = ""
+    matched_filters = []
 
     for filter_name, filter_result in response.sanitization_result.filter_results.items():
         if filter_result.sdp_filter_result.inspect_result.match_state.name == "MATCH_FOUND":
-            matched_filters += filter_name 
-        if filter_result.rai_filter_result.match_state.name == "MATCH_FOUND":
-            matched_filters += filter_name 
-        if filter_result.pi_and_jailbreak_filter_result.match_state.name == "MATCH_FOUND":
-            matched_filters += filter_name
-        if filter_result.malicious_uri_filter_result.match_state.name == "MATCH_FOUND":
-            matched_filters += filter_name
-        if filter_result.csam_filter_filter_result.match_state.name == "MATCH_FOUND":
-            matched_filters += filter_name
+            matched_filters.append(filter_name)
+        elif filter_result.rai_filter_result.match_state.name == "MATCH_FOUND":
+            matched_filters.append(filter_name)
+        elif filter_result.pi_and_jailbreak_filter_result.match_state.name == "MATCH_FOUND":
+            matched_filters.append(filter_name)
+        elif filter_result.malicious_uri_filter_result.match_state.name == "MATCH_FOUND":
+            matched_filters.append(filter_name)
+        elif filter_result.csam_filter_filter_result.match_state.name == "MATCH_FOUND":
+            matched_filters.append(filter_name)
+    
+    matched_filters_string = ", ".join(matched_filters) if matched_filters else "None"
 
     # Return the sanitization result.
-    return matched_filters, response.sanitization_result.filter_match_state.name
+    return matched_filters_string, response.sanitization_result.filter_match_state.name
