@@ -240,3 +240,8 @@ variable "create_wfif_demo" {
   type          = bool
   default       = false
 }
+
+variable "template" {
+  type        = string
+  description = "Model Amor template for screening prompts and responses"
+}

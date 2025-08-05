@@ -2337,7 +2337,9 @@ module "model_armor_cloud_function" {
     function-desc   = "reads prompt test cases from csv file and runs them past model armor"
     entry-point     = "model_armor"
     env-vars        = {
-        PROJECT_NAME    = var.project
+        PROJECT_ID  = var.project
+        LOCATION_ID = var.region
+        TEMPLATE_ID = var.template
     }
     triggers        = [
       {
