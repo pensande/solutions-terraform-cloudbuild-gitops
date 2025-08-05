@@ -2,10 +2,25 @@ import os
 import csv
 from google.cloud import firestore
 from google.cloud import storage
+from google.api_core.client_options import ClientOptions
+from google.cloud import modelarmor_v1
 
 # declare environment variables
-PROJECT_NAME = os.environ.get('PROJECT_NAME')
-storage_client = storage.Client(project=PROJECT_NAME)
+PROJECT_ID = os.environ.get('PROJECT_ID')
+LOCATION_ID = os.environ.get('LOCATION_ID')
+TEMPLATE_ID = os.environ.get('TEMPLATE_ID')
+
+# create clients
+storage_client = storage.Client(project=PROJECT_ID)
+
+print("Creating Model Armor client...")
+client = modelarmor_v1.ModelArmorClient(
+    transport="rest",
+    client_options=ClientOptions(
+        api_endpoint=f"modelarmor.{LOCATION_ID}.rep.googleapis.com"
+    ),
+)
+print("Model Armor client created!")
 
 def model_armor(event, context):
     """Triggered by a change to a Cloud Storage bucket.
@@ -26,7 +41,7 @@ def model_armor(event, context):
             
             header = 0
             data = {}
-            db = firestore.Client(project=PROJECT_NAME)
+            db = firestore.Client(project=PROJECT_ID)
 
             for line in lines:
                 if header == 0:
@@ -37,8 +52,9 @@ def model_armor(event, context):
                     for column in line:
                         if index == 0:
                             document_id = column 
-                        else:
+                        elif index == 1:
                             data[header_row[index]] = column
+                            data[header_row[index+1]] = sanitize_prompt(column)
                         index += 1
                     print(data)
                     db.collection("model-armor-prompts").document(document_id).set(data)
@@ -48,3 +64,19 @@ def model_armor(event, context):
     except Exception as e:
         print(e)
         print("Input file read unsuccessful!")
+
+def sanitize_prompt(user_prompt):
+    # Initialize request argument(s).
+    user_prompt_data = modelarmor_v1.DataItem(text=user_prompt)
+
+    # Prepare request for sanitizing the defined prompt.
+    request = modelarmor_v1.SanitizeUserPromptRequest(
+        name=f"projects/{PROJECT_ID}/locations/{LOCATION_ID}/templates/{TEMPLATE_ID}",
+        user_prompt_data=user_prompt_data,
+    )
+
+    # Sanitize the user prompt.
+    response = client.sanitize_user_prompt(request=request)
+
+    # Return the sanitization result.
+    return response

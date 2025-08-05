@@ -90,3 +90,8 @@ resource "google_project_service" "firestore" {
 
   disable_on_destroy = false
 }
+
+resource "google_project_service" "model_armor" {
+  project = var.project
+  service = "modelarmor.googleapis.com"
+}

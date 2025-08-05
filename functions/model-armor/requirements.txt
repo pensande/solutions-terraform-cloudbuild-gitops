@@ -2,3 +2,4 @@
 # package>=version
 google-cloud-storage
 google-cloud-firestore
+google-cloud-modelarmor
