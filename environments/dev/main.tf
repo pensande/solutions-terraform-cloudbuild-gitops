@@ -2363,9 +2363,16 @@ resource "google_storage_bucket_iam_member" "model_armor_prompts_bucket_read" {
   member    = "serviceAccount:${module.model_armor_cloud_function.sa-email}"
 }
 
-# IAM entry for service account of model_armor function to use the Model Armor API
+# IAM entry for service account of model-armor function to use the Model Armor API
 resource "google_project_iam_member" "model_armor_user" {
   project   = var.project
   role      = "roles/modelarmor.user"
+  member    = "serviceAccount:${module.model_armor_cloud_function.sa-email}"
+}
+
+# IAM entry for service account of mode-armor function to use the firestore database
+resource "google_project_iam_member" "project_firestore_user" {
+  project   = var.project
+  role      = "roles/datastore.user"
   member    = "serviceAccount:${module.model_armor_cloud_function.sa-email}"
 }
