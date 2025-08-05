@@ -56,8 +56,10 @@ def model_armor(event, context):
                         elif index == 1:
                             data[header_row[index]] = column
                             sanitization_result = sanitize_prompt(column)
-                            data[header_row[index+1]] = "will do"
-                            data[header_row[index+2]] = sanitization_result.filter_match_state
+                            for filter_name, filter_result in sanitization_result.filter_results.items():
+                                if filter_result.match_state == aiplatform.SanitizationResult.FilterMatchState.MATCH_FOUND:
+                                    data[header_row[index+1]] = f"Filter '{filter_name}' flagged the content."
+                            data[header_row[index+2]] = sanitization_result.filter_match_state.name
                         index += 1
                     print(data)
                     db.collection("model-armor-prompts").document(document_id).set(data)
