@@ -55,8 +55,7 @@ def model_armor(event, context):
                             document_id = column 
                         elif index == 1:
                             data[header_row[index]] = column
-                            sanitization_result = sanitize_prompt(column)
-                            data[header_row[index+2]] = sanitization_result.filter_match_state.name
+                            data[header_row[index+1]], data[header_row[index+2]] = sanitize_prompt(column)
                         index += 1
                     print(data)
                     db.collection("model-armor-prompts").document(document_id).set(data)
@@ -80,5 +79,19 @@ def sanitize_prompt(user_prompt):
     # Sanitize the user prompt.
     response = client.sanitize_user_prompt(request=request)
 
+    matched_filters = ""
+
+    for filter_name, filter_result in response.sanitization_result.filter_results.items():
+        if filter_result.sdp_filter_result.inspect_result.match_state.name == "MATCH_FOUND":
+            matched_filters += filter_name 
+        if filter_result.rai_filter_result.match_state.name == "MATCH_FOUND":
+            matched_filters += filter_name 
+        if filter_result.pi_and_jailbreak_filter_result.match_state.name == "MATCH_FOUND":
+            matched_filters += filter_name
+        if filter_result.malicious_uri_filter_result.match_state.name == "MATCH_FOUND":
+            matched_filters += filter_name
+        if filter_result.csam_filter_filter_result.match_state.name == "MATCH_FOUND":
+            matched_filters += filter_name
+
     # Return the sanitization result.
-    return response.sanitization_result
+    return matched_filters, response.sanitization_result.filter_match_state.name
