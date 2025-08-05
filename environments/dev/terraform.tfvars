@@ -41,4 +41,4 @@ create_ss_demo = false
 create_datadog_demo = false
 datadog_principal = "ddgci-06b34e240fe93b8616bf@datadog-gci-sts-us5-prod.iam.gserviceaccount.com"
 create_wfif_demo = false
-template = "model_armor_demo_template"
+template = "model-armor-demo-template"
