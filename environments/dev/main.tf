@@ -2358,7 +2358,7 @@ resource "google_project_iam_custom_role" "model_armor_custom_role" {
   permissions = ["storage.buckets.get","storage.objects.get", "storage.objects.create", "storage.objects.update", "storage.objects.delete"]
 }
 
-# IAM entry for service account of model-armor function over prompts bucket
+# IAM entry for service account of model-armor function over the prompts bucket
 resource "google_storage_bucket_iam_member" "model_armor_prompts_bucket_read" {
   bucket    = google_storage_bucket.model_armor_prompts_bucket.name
   role      = google_project_iam_custom_role.model_armor_custom_role.name
@@ -2369,12 +2369,5 @@ resource "google_storage_bucket_iam_member" "model_armor_prompts_bucket_read" {
 resource "google_project_iam_member" "model_armor_user" {
   project   = var.project
   role      = "roles/modelarmor.user"
-  member    = "serviceAccount:${module.model_armor_cloud_function.sa-email}"
-}
-
-# IAM entry for service account of mode-armor function to use the firestore database
-resource "google_project_iam_member" "project_firestore_user" {
-  project   = var.project
-  role      = "roles/datastore.user"
   member    = "serviceAccount:${module.model_armor_cloud_function.sa-email}"
 }
