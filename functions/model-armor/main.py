@@ -32,8 +32,8 @@ def model_armor(event, context):
     print(f"Processing file: {event['name']}.")
 
     try:
-        mybucket = storage_client.get_bucket(event['bucket'])
-        blob = mybucket.get_blob(event['name'])
+        prompt_bucket = storage_client.get_bucket(event['bucket'])
+        blob = prompt_bucket.get_blob(event['name'])
         
         if event['contentType']=='text/csv':
             csvfile = blob.download_as_bytes()
@@ -67,7 +67,7 @@ def model_armor(event, context):
             
             # writing results to the prompt bucket
             print("Writing results to the prompt bucket...")
-            blob = bucket.blob("prompt-scanning-results.csv")
+            blob = prompt_bucket.blob("prompt-scanning-results.csv")
             blob.upload_from_filename("/tmp/prompt-scanning-results.csv")
             print("Results written to the prompt bucket!")
         else:
