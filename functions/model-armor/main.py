@@ -48,22 +48,22 @@ def model_armor(event, context):
                 w = csv.writer(f)
                 w.writerow(['id','prompt','response','verdict'])
             
-            for line in lines:
-                if header == 0:
-                    header_row = line
-                    header += 1
-                else:
-                    index = 0
-                    for column in line:
-                        if index == 0:
-                            prompt_id = column 
-                        elif index == 1:
-                            data[header_row[index]] = column
-                            data[header_row[index+1]], data[header_row[index+2]] = sanitize_prompt(column)
-                            w.writerow([prompt_id, column, data[header_row[index+1]], data[header_row[index+2]]])    
-                        index += 1
-                    print(data)
-                    db.collection("model-armor-prompts").document(prompt_id).set(data)
+                for line in lines:
+                    if header == 0:
+                        header_row = line
+                        header += 1
+                    else:
+                        index = 0
+                        for column in line:
+                            if index == 0:
+                                prompt_id = column 
+                            elif index == 1:
+                                data[header_row[index]] = column
+                                data[header_row[index+1]], data[header_row[index+2]] = sanitize_prompt(column)
+                                w.writerow([prompt_id, column, data[header_row[index+1]], data[header_row[index+2]]])    
+                            index += 1
+                        print(data)
+                        db.collection("model-armor-prompts").document(prompt_id).set(data)
             
             # writing results to the prompt bucket
             print("Writing results to the prompt bucket...")
