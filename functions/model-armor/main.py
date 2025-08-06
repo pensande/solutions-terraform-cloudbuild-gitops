@@ -1,7 +1,6 @@
 import os
 import csv
 import json
-from google.cloud import firestore
 from google.cloud import storage
 from google.api_core.client_options import ClientOptions
 from google.cloud import modelarmor_v1
@@ -58,12 +57,9 @@ def model_armor(event, context):
                             if index == 0:
                                 prompt_id = column 
                             elif index == 1:
-                                data[header_row[index]] = column
-                                data[header_row[index+1]], data[header_row[index+2]] = sanitize_prompt(column)
-                                w.writerow([prompt_id, column, data[header_row[index+1]], data[header_row[index+2]]])    
+                                response, verdict = sanitize_prompt(column)
+                                w.writerow([prompt_id, column, response, verdict])    
                             index += 1
-                        print(data)
-                        db.collection("model-armor-prompts").document(prompt_id).set(data)
             
             # writing results to the prompt bucket
             print("Writing results to the prompt bucket...")
