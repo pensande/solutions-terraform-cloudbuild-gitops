@@ -2330,6 +2330,13 @@ resource "google_storage_bucket" "model_armor_prompts_bucket" {
   uniform_bucket_level_access   = true
 }
 
+# GCS bucket to store csv files with results of model armor
+resource "google_storage_bucket" "model_armor_results_bucket" {
+  name                          = "model-armor-results-bucket"
+  location                      = var.region
+  uniform_bucket_level_access   = true
+}
+
 module "model_armor_cloud_function" {
     source          = "../../modules/cloud_function"
     project         = var.project
@@ -2340,6 +2347,7 @@ module "model_armor_cloud_function" {
         PROJECT_ID  = var.project
         LOCATION_ID = var.region
         TEMPLATE_ID = var.template
+        RESULT_B    = google_storage_bucket.model_armor_results_bucket.name
     }
     triggers        = [
       {
@@ -2351,17 +2359,31 @@ module "model_armor_cloud_function" {
 }
 
 # Create a custom IAM role for the model-armor function over storage buckets
-resource "google_project_iam_custom_role" "model_armor_custom_role" {
-  role_id     = "model_armor_custom_role"
+resource "google_project_iam_custom_role" "model_armor_custom_role_read" {
+  role_id     = "model_armor_custom_role_read"
   title       = "Custom Role for the model-armor function to read from storage buckets"
   description = "This role is used by the model-armor function's SA in ${var.project}"
-  permissions = ["storage.buckets.get","storage.objects.get", "storage.objects.create", "storage.objects.update", "storage.objects.delete"]
+  permissions = ["storage.buckets.get","storage.objects.get"]
+}
+
+resource "google_project_iam_custom_role" "model_armor_custom_role_write" {
+  role_id     = "model_armor_custom_role_write"
+  title       = "Custom Role for the model-armor function to write to storage buckets"
+  description = "This role is used by the model-armor function's SA in ${var.project}"
+  permissions = ["storage.buckets.get", "storage.objects.create", "storage.objects.update", "storage.objects.delete"]
 }
 
 # IAM entry for service account of model-armor function over the prompts bucket
 resource "google_storage_bucket_iam_member" "model_armor_prompts_bucket_read" {
   bucket    = google_storage_bucket.model_armor_prompts_bucket.name
-  role      = google_project_iam_custom_role.model_armor_custom_role.name
+  role      = google_project_iam_custom_role.model_armor_custom_role_read.name
+  member    = "serviceAccount:${module.model_armor_cloud_function.sa-email}"
+}
+
+# IAM entry for service account of model-armor function over the results bucket
+resource "google_storage_bucket_iam_member" "model_armor_results_bucket_write" {
+  bucket    = google_storage_bucket.model_armor_results_bucket.name
+  role      = google_project_iam_custom_role.model_armor_custom_role_write.name
   member    = "serviceAccount:${module.model_armor_cloud_function.sa-email}"
 }
 

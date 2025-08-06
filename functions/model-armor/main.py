@@ -6,9 +6,10 @@ from google.api_core.client_options import ClientOptions
 from google.cloud import modelarmor_v1
 
 # declare environment variables
-PROJECT_ID = os.environ.get('PROJECT_ID')
+PROJECT_ID  = os.environ.get('PROJECT_ID')
 LOCATION_ID = os.environ.get('LOCATION_ID')
 TEMPLATE_ID = os.environ.get('TEMPLATE_ID')
+RESULT_B    = os.environ.get('RESULT_B')
 
 # create clients
 storage_client = storage.Client(project=PROJECT_ID)
@@ -40,9 +41,7 @@ def model_armor(event, context):
             lines = csv.reader(csvcontent)
             
             header = 0
-            data = {}
-            db = firestore.Client(project=PROJECT_ID)
-
+            
             with open('/tmp/prompt-scanning-results.csv', 'w', newline='') as f:
                 w = csv.writer(f)
                 w.writerow(['id','prompt','response','verdict'])
@@ -61,11 +60,12 @@ def model_armor(event, context):
                                 w.writerow([prompt_id, column, response, verdict])    
                             index += 1
             
-            # writing results to the prompt bucket
-            print("Writing results to the prompt bucket...")
-            blob = prompt_bucket.blob("prompt-scanning-results.csv")
+            # writing results to the result bucket
+            result_bucket = storage_client.get_bucket(RESULT_B)
+            print("Writing results to the results bucket...")
+            blob = result_bucket.blob("prompt-scanning-results.csv")
             blob.upload_from_filename("/tmp/prompt-scanning-results.csv")
-            print("Results written to the prompt bucket!")
+            print("Results written to the results bucket!")
         else:
             print(f"Sorry, I cannot process the file format: {event['contentType']}!")
     
