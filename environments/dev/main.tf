@@ -2355,7 +2355,7 @@ resource "google_project_iam_custom_role" "model_armor_custom_role" {
   role_id     = "model_armor_custom_role"
   title       = "Custom Role for the model-armor function to read from storage buckets"
   description = "This role is used by the model-armor function's SA in ${var.project}"
-  permissions = ["storage.buckets.get","storage.objects.get"]
+  permissions = ["storage.buckets.get","storage.objects.get", "storage.objects.create", "storage.objects.update", "storage.objects.delete"]
 }
 
 # IAM entry for service account of model-armor function over prompts bucket

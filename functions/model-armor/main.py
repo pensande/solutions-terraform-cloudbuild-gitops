@@ -44,6 +44,10 @@ def model_armor(event, context):
             data = {}
             db = firestore.Client(project=PROJECT_ID)
 
+            with open('/tmp/prompt-scanning-results.csv', 'w', newline='') as f:
+                w = csv.writer(f)
+                w.writerow(['id','prompt','response','verdict'])
+            
             for line in lines:
                 if header == 0:
                     header_row = line
@@ -52,13 +56,20 @@ def model_armor(event, context):
                     index = 0
                     for column in line:
                         if index == 0:
-                            document_id = column 
+                            prompt_id = column 
                         elif index == 1:
                             data[header_row[index]] = column
                             data[header_row[index+1]], data[header_row[index+2]] = sanitize_prompt(column)
+                            w.writerow([prompt_id, column, data[header_row[index+1]], data[header_row[index+2]]])    
                         index += 1
                     print(data)
-                    db.collection("model-armor-prompts").document(document_id).set(data)
+                    db.collection("model-armor-prompts").document(prompt_id).set(data)
+            
+            # writing results to the prompt bucket
+            print("Writing results to the prompt bucket...")
+            blob = bucket.blob("prompt-scanning-results.csv")
+            blob.upload_from_filename("/tmp/prompt-scanning-results.csv")
+            print("Results written to the prompt bucket!")
         else:
             print(f"Sorry, I cannot process the file format: {event['contentType']}!")
     
