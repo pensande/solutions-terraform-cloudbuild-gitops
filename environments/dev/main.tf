@@ -2348,7 +2348,7 @@ module "model_armor_cloud_function" {
     env-vars        = {
         PROJECT_ID  = var.project
         LOCATION_ID = var.region
-        TEMPLATE_ID = var.template
+        TEMPLATE_ID = google_model_armor_template.model_armor_template.id
         RESULT_B    = google_storage_bucket.model_armor_results_bucket.name
     }
     triggers        = [
