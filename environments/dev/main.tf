@@ -2395,7 +2395,7 @@ resource "google_project_iam_member" "model_armor_user" {
 }
 
 resource "google_data_loss_prevention_inspect_template" "model_armor_dlp_template" {
-  parent = "projects/${var.project}"
+  parent = "projects/${var.project}/locations/${var.region}"
   description = "Inspection template for Model Armor Demo"
   display_name = "model-armor-dlp-template"
 
