@@ -434,8 +434,7 @@ resource "google_compute_backend_service" "iap_run_sql_demo_backend" {
   }
 
   iap {
-    oauth2_client_id     = google_iap_client.iap_run_sql_demo_client[0].client_id
-    oauth2_client_secret = google_iap_client.iap_run_sql_demo_client[0].secret
+    enabled               = true
   }
 }
 
@@ -549,14 +548,6 @@ resource "google_project_iam_member" "sql_client_policy" {
   member        = "serviceAccount:${google_service_account.run_sql_service_account[0].email}"
 }
 
-#oauth2 client
-resource "google_iap_client" "iap_run_sql_demo_client" {
-  count         = var.create_iap_run_sql_demo ? 1 : 0
-  display_name  = "IAP Run SQL Demo Client"
-  brand         =  "projects/${var.project}/brands/${data.google_project.project.number}"
-}
-
-
 # Allow users secure access to the iap-run-sql-demo app
 resource "google_iap_web_backend_service_iam_member" "iap_run_sql_demo_member" {
   count                 = var.create_iap_run_sql_demo ? 1 : 0
@@ -570,7 +561,6 @@ resource "google_iap_web_backend_service_iam_member" "iap_run_sql_demo_member" {
     description         = "enforce beyondcorp access level india_windows"
   }
 }
-
 
 # Allow IAP to invoke the cloud run service
 resource "google_project_service_identity" "iap_sa" {
@@ -1837,16 +1827,8 @@ resource "google_compute_region_backend_service" "aadhaar_vault_serverless_backe
   }
 
   iap {
-    oauth2_client_id     = google_iap_client.aadhaar_vault_iap_client[0].client_id
-    oauth2_client_secret = google_iap_client.aadhaar_vault_iap_client[0].secret
+    enabled               = true
   }
-}
-
-#oauth2 client
-resource "google_iap_client" "aadhaar_vault_iap_client" {
-  count         = var.create_aadhaar_vault_demo ? 1 : 0
-  display_name  = "Aadhaar Vault App Client"
-  brand         =  "projects/${var.project}/brands/${data.google_project.project.number}"
 }
 
 # network endpoint group
@@ -2317,4 +2299,169 @@ resource "google_project_iam_member" "storage_admin" {
   project = var.host_project
   role    = "roles/storage.admin"
   member  = "principalSet://iam.googleapis.com/locations/global/workforcePools/agarsand-wf-pool/attribute.department/Security"
+}
+
+#######################################
+## Model Armor Runtime Security Demo ##
+#######################################
+
+# GCS bucket to store csv files with input prompt test cases
+resource "google_storage_bucket" "model_armor_prompts_bucket" {
+  name                          = "model-armor-prompts-bucket"
+  location                      = var.region
+  uniform_bucket_level_access   = true
+}
+
+# GCS bucket to store csv files with results of model armor
+resource "google_storage_bucket" "model_armor_results_bucket" {
+  name                          = "model-armor-results-bucket"
+  location                      = var.region
+  uniform_bucket_level_access   = true
+}
+
+module "model_armor_cloud_function" {
+    source          = "../../modules/cloud_function"
+    project         = var.project
+    function-name   = "model-armor"
+    function-desc   = "reads prompt test cases from csv file and runs them past model armor"
+    entry-point     = "model_armor"
+    env-vars        = {
+        PROJECT_ID  = var.project
+        LOCATION_ID = var.region
+        TEMPLATE_ID = google_model_armor_template.model_armor_template.id
+        RESULT_B    = google_storage_bucket.model_armor_results_bucket.name
+    }
+    triggers        = [
+      {
+        event_type  = "google.cloud.storage.object.v1.finalized"
+        resource    = google_storage_bucket.model_armor_prompts_bucket.name
+      }
+    ]
+    invoker         = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
+}
+
+# Create a custom IAM role for the model-armor function over storage buckets
+resource "google_project_iam_custom_role" "model_armor_custom_role_read" {
+  role_id     = "model_armor_custom_role_read"
+  title       = "Custom Role for the model-armor function to read from storage buckets"
+  description = "This role is used by the model-armor function's SA in ${var.project}"
+  permissions = ["storage.buckets.get","storage.objects.get"]
+}
+
+resource "google_project_iam_custom_role" "model_armor_custom_role_write" {
+  role_id     = "model_armor_custom_role_write"
+  title       = "Custom Role for the model-armor function to write to storage buckets"
+  description = "This role is used by the model-armor function's SA in ${var.project}"
+  permissions = ["storage.buckets.get", "storage.objects.create", "storage.objects.update", "storage.objects.delete"]
+}
+
+# IAM entry for service account of model-armor function over the prompts bucket
+resource "google_storage_bucket_iam_member" "model_armor_prompts_bucket_read" {
+  bucket    = google_storage_bucket.model_armor_prompts_bucket.name
+  role      = google_project_iam_custom_role.model_armor_custom_role_read.name
+  member    = "serviceAccount:${module.model_armor_cloud_function.sa-email}"
+}
+
+# IAM entry for service account of model-armor function over the results bucket
+resource "google_storage_bucket_iam_member" "model_armor_results_bucket_write" {
+  bucket    = google_storage_bucket.model_armor_results_bucket.name
+  role      = google_project_iam_custom_role.model_armor_custom_role_write.name
+  member    = "serviceAccount:${module.model_armor_cloud_function.sa-email}"
+}
+
+# IAM entry for service account of model-armor function to use the Model Armor API
+resource "google_project_iam_member" "model_armor_user" {
+  project   = var.project
+  role      = "roles/modelarmor.user"
+  member    = "serviceAccount:${module.model_armor_cloud_function.sa-email}"
+}
+
+resource "google_data_loss_prevention_inspect_template" "model_armor_dlp_template" {
+  parent = "projects/${var.project}/locations/${var.region}"
+  description = "Inspection template for Model Armor Demo"
+  display_name = "model-armor-dlp-template"
+
+  inspect_config {
+    info_types {
+      name = "CREDIT_CARD_DATA"
+    }
+    info_types {
+      name = "DEMOGRAPHIC_DATA"
+    }
+    info_types {
+      name = "DRIVERS_LICENSE_NUMBER"
+    }
+    info_types {
+      name = "FINANCIAL_ID"
+    }
+    info_types {
+      name = "GEOGRAPHIC_DATA"
+    }
+    info_types {
+      name = "GOVERNMENT_ID"
+    }
+    info_types {
+      name = "MEDICAL_DATA"
+    }
+    info_types {
+      name = "MEDICAL_ID"
+    }
+    info_types {
+      name = "PHONE_NUMBER"
+    }
+    info_types {
+      name = "SECURITY_DATA"
+    }
+    info_types {
+      name = "TECHNICAL_ID"
+    }
+    info_types {
+      name = "VEHICLE_IDENTIFICATION_NUMBER"
+    }
+    min_likelihood = "POSSIBLE"
+  }
+}
+
+resource "google_model_armor_template" "model_armor_template" {
+  project     = var.project
+  location    = var.region
+  template_id = "model-armor-template"
+
+  filter_config {
+    rai_settings {
+      rai_filters {
+        filter_type      = "SEXUALLY_EXPLICIT"
+        confidence_level = "LOW_AND_ABOVE"
+      }
+      rai_filters {
+        filter_type      = "HATE_SPEECH"
+        confidence_level = "LOW_AND_ABOVE"
+      }
+      rai_filters {
+        filter_type      = "HARASSMENT"
+        confidence_level = "LOW_AND_ABOVE"
+      }
+      rai_filters {
+        filter_type      = "DANGEROUS"
+        confidence_level = "LOW_AND_ABOVE"
+      }
+    }
+    sdp_settings {
+      advanced_config {
+        inspect_template = google_data_loss_prevention_inspect_template.model_armor_dlp_template.id
+      }
+    }
+    pi_and_jailbreak_filter_settings {
+      filter_enforcement = "ENABLED"
+      confidence_level   = "LOW_AND_ABOVE"
+    }
+    malicious_uri_filter_settings {
+      filter_enforcement = "ENABLED"
+    }
+  }
+  template_metadata {
+    multi_language_detection {
+      enable_multi_language_detection = true
+    }
+  }
 }
