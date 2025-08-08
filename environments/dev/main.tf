@@ -1828,16 +1828,7 @@ resource "google_compute_region_backend_service" "aadhaar_vault_serverless_backe
 
   iap {
     enabled               = true
-    oauth2_client_id      = google_iap_client.aadhaar_vault_iap_client[0].client_id
-    oauth2_client_secret  = google_iap_client.aadhaar_vault_iap_client[0].secret
   }
-}
-
-#oauth2 client
-resource "google_iap_client" "aadhaar_vault_iap_client" {
-  count         = var.create_aadhaar_vault_demo ? 1 : 0
-  display_name  = "Aadhaar Vault App Client"
-  brand         =  "projects/${var.project}/brands/${data.google_project.project.number}"
 }
 
 # network endpoint group
