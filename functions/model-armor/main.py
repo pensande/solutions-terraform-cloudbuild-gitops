@@ -79,8 +79,8 @@ def sanitize_prompt(user_prompt):
 
     # Prepare request for sanitizing the defined prompt.
     request = modelarmor_v1.SanitizeUserPromptRequest(
-        name=f"projects/{PROJECT_ID}/locations/{LOCATION_ID}/templates/{TEMPLATE_ID}",
-        user_prompt_data=user_prompt_data,
+        name                =   TEMPLATE_ID,
+        user_prompt_data    =   user_prompt_data,
     )
 
     # Sanitize the user prompt.
