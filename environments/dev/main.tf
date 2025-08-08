@@ -2439,3 +2439,47 @@ resource "google_data_loss_prevention_inspect_template" "model_armor_dlp_templat
     min_likelihood = "POSSIBLE"
   }
 }
+
+resource "google_model_armor_template" "model_armor_template" {
+  project     = var.project
+  location    = var.region
+  template_id = "model-armor-template"
+
+  filter_config {
+    rai_settings {
+      rai_filters {
+        filter_type      = "SEXUALLY_EXPLICIT"
+        confidence_level = "LOW_AND_ABOVE"
+      }
+      rai_filters {
+        filter_type      = "HATE_SPEECH"
+        confidence_level = "LOW_AND_ABOVE"
+      }
+      rai_filters {
+        filter_type      = "HARASSMENT"
+        confidence_level = "LOW_AND_ABOVE"
+      }
+      rai_filters {
+        filter_type      = "DANGEROUS"
+        confidence_level = "LOW_AND_ABOVE"
+      }
+    }
+    sdp_settings {
+      advanced_config {
+        inspect_template = google_data_loss_prevention_inspect_template.model_armor_dlp_template.id
+      }
+    }
+    pi_and_jailbreak_filter_settings {
+      filter_enforcement = "ENABLED"
+      confidence_level   = "LOW_AND_ABOVE"
+    }
+    malicious_uri_filter_settings {
+      filter_enforcement = "ENABLED"
+    }
+  }
+  template_metadata {
+    multi_language_detection {
+      enable_multi_language_detection = true
+    }
+  }
+}
