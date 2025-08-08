@@ -434,8 +434,9 @@ resource "google_compute_backend_service" "iap_run_sql_demo_backend" {
   }
 
   iap {
-    oauth2_client_id     = google_iap_client.iap_run_sql_demo_client[0].client_id
-    oauth2_client_secret = google_iap_client.iap_run_sql_demo_client[0].secret
+    enabled               = true
+    oauth2_client_id      = google_iap_client.iap_run_sql_demo_client[0].client_id
+    oauth2_client_secret  = google_iap_client.iap_run_sql_demo_client[0].secret
   }
 }
 
@@ -1837,8 +1838,9 @@ resource "google_compute_region_backend_service" "aadhaar_vault_serverless_backe
   }
 
   iap {
-    oauth2_client_id     = google_iap_client.aadhaar_vault_iap_client[0].client_id
-    oauth2_client_secret = google_iap_client.aadhaar_vault_iap_client[0].secret
+    enabled               = true
+    oauth2_client_id      = google_iap_client.aadhaar_vault_iap_client[0].client_id
+    oauth2_client_secret  = google_iap_client.aadhaar_vault_iap_client[0].secret
   }
 }
 
