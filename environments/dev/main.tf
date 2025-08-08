@@ -435,8 +435,6 @@ resource "google_compute_backend_service" "iap_run_sql_demo_backend" {
 
   iap {
     enabled               = true
-    oauth2_client_id      = google_iap_client.iap_run_sql_demo_client[0].client_id
-    oauth2_client_secret  = google_iap_client.iap_run_sql_demo_client[0].secret
   }
 }
 
@@ -550,14 +548,6 @@ resource "google_project_iam_member" "sql_client_policy" {
   member        = "serviceAccount:${google_service_account.run_sql_service_account[0].email}"
 }
 
-#oauth2 client
-resource "google_iap_client" "iap_run_sql_demo_client" {
-  count         = var.create_iap_run_sql_demo ? 1 : 0
-  display_name  = "IAP Run SQL Demo Client"
-  brand         =  "projects/${var.project}/brands/${data.google_project.project.number}"
-}
-
-
 # Allow users secure access to the iap-run-sql-demo app
 resource "google_iap_web_backend_service_iam_member" "iap_run_sql_demo_member" {
   count                 = var.create_iap_run_sql_demo ? 1 : 0
@@ -571,7 +561,6 @@ resource "google_iap_web_backend_service_iam_member" "iap_run_sql_demo_member" {
     description         = "enforce beyondcorp access level india_windows"
   }
 }
-
 
 # Allow IAP to invoke the cloud run service
 resource "google_project_service_identity" "iap_sa" {
