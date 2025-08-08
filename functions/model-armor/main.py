@@ -63,7 +63,7 @@ def model_armor(event, context):
             # writing results to the result bucket
             result_bucket = storage_client.get_bucket(RESULT_B)
             print("Writing results to the results bucket...")
-            blob = result_bucket.blob("prompt-scanning-results.csv")
+            blob = result_bucket.blob(f"ma_scanned_{event['name']}")
             blob.upload_from_filename("/tmp/prompt-scanning-results.csv")
             print("Results written to the results bucket!")
         else:
