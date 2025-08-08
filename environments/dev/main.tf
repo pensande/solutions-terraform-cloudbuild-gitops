@@ -2393,3 +2393,49 @@ resource "google_project_iam_member" "model_armor_user" {
   role      = "roles/modelarmor.user"
   member    = "serviceAccount:${module.model_armor_cloud_function.sa-email}"
 }
+
+resource "google_data_loss_prevention_inspect_template" "model_armor_dlp_template" {
+    parent = var.project
+    description = "Inspection template for Model Armor Demo"
+    display_name = "model-armor-dlp-template"
+
+    inspect_config {
+        info_types {
+            name = "CREDIT_CARD_DATA"
+        }
+        info_types {
+            name = "DEMOGRAPHIC_DATA"
+        }
+        info_types {
+            name = "DRIVERS_LICENSE_NUMBER"
+        }
+        info_types {
+            name = "FINANCIAL_ID"
+        }
+        info_types {
+            name = "GEOGRAPHIC_DATA"
+        }
+        info_types {
+            name = "GOVERNMENT_ID"
+        }
+        info_types {
+            name = "MEDICAL_DATA"
+        }
+        info_types {
+            name = "MEDICAL_ID"
+        }
+        info_types {
+            name = "PHONE_NUMBER"
+        }
+        info_types {
+            name = "SECURITY_DATA"
+        }
+        info_types {
+            name = "TECHNICAL_ID"
+        }
+        info_types {
+            name = "VEHICLE_IDENTIFICATION_NUMBER"
+        }
+        min_likelihood = "POSSIBLE"
+    }
+}
